@@ -1,7 +1,6 @@
-chrome.runtime.onConnect.addListener(function(port) {
-  var tab = port.sender.tab;
+class Utils {
+  sendData() {
 
-  port.onMessage.addListener(function(info) {
     var xhr = new XMLHttpRequest();
     var data = new FormData();
 
@@ -31,5 +30,18 @@ chrome.runtime.onConnect.addListener(function(port) {
         }
       };
     }
+  }
+}
+
+
+chrome.runtime.onConnect.addListener(function(port) {
+  var tab = port.sender.tab;
+  const portName = port.name;
+  if (portName !== 'content-script') {
+    return;
+  }
+
+  port.onMessage.addListener(function(pageInfo) {
+    console.log(pageInfo);
   });
 });

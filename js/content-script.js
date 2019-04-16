@@ -1,56 +1,65 @@
-/*
- * 频率控制 返回函数连续调用时，fn 执行频率限定为每多少时间执行一次
- * @param fn {function}  需要调用的函数
- * @param delay  {number}    延迟时间，单位毫秒
- * @param immediate  {bool} 给 immediate参数传递false 绑定的函数先执行，而不是delay后后执行。
- * @return {function}实际调用函数
- */
-function throttle(fn, delay, immediate, debounce) {
-  var curr = +new Date(), //当前事件
-    last_call = 0,
-    last_exec = 0,
-    timer = null,
-    diff, //时间差
-    context, //上下文
-    args,
-    exec = function() {
-      last_exec = curr;
-      fn.apply(context, args);
-    };
-  return function() {
-    curr = +new Date();
-    context = this,
-      args = arguments,
-      diff = curr - (debounce ? last_call : last_exec) - delay;
-    clearTimeout(timer);
-    if (debounce) {
-      if (!immediate) {
-        timer = setTimeout(exec, delay);
-      } else if (diff >= 0) {
-        exec();
+
+class Utils {
+  constructor() {
+    this.connector = chrome.runtime.connect({name: 'content-script'});
+  }
+
+  /*
+   * 频率控制 返回函数连续调用时，fn 执行频率限定为每多少时间执行一次
+   * @param fn {function}  需要调用的函数
+   * @param delay  {number}    延迟时间，单位毫秒
+   * @param immediate  {bool} 给 immediate参数传递false 绑定的函数先执行，而不是delay后后执行。
+   * @return {function}实际调用函数
+   */
+  throttle(fn, delay, immediate, debounce) {
+    var curr = +new Date(), //当前事件
+      last_call = 0,
+      last_exec = 0,
+      timer = null,
+      diff, //时间差
+      context, //上下文
+      args,
+      exec = function() {
+        last_exec = curr;
+        fn.apply(context, args);
+      };
+    return function() {
+      curr = +new Date();
+      context = this,
+        args = arguments,
+        diff = curr - (debounce ? last_call : last_exec) - delay;
+      clearTimeout(timer);
+      if (debounce) {
+        if (!immediate) {
+          timer = setTimeout(exec, delay);
+        } else if (diff >= 0) {
+          exec();
+        }
+      } else {
+        if (diff >= 0) {
+          exec();
+        } else if (!immediate) {
+          timer = setTimeout(exec, -diff);
+        }
       }
-    } else {
-      if (diff >= 0) {
-        exec();
-      } else if (!immediate) {
-        timer = setTimeout(exec, -diff);
-      }
+      last_call = curr;
     }
-    last_call = curr;
+  }
+
+
+  /*
+   * 空闲控制 返回函数连续调用时，空闲时间必须大于或等于 delay，fn 才会执行
+   * @param fn {function}  要调用的函数
+   * @param delay   {number}    空闲时间
+   * @param immediate  {bool} 给 immediate参数传递false 绑定的函数先执行，而不是delay后后执行。
+   * @return {function}实际调用函数
+   */
+  debounce(fn, delay, immediate) {
+    return this.throttle(fn, delay, immediate, true);
   }
 }
 
-
-/*
- * 空闲控制 返回函数连续调用时，空闲时间必须大于或等于 delay，fn 才会执行
- * @param fn {function}  要调用的函数
- * @param delay   {number}    空闲时间
- * @param immediate  {bool} 给 immediate参数传递false 绑定的函数先执行，而不是delay后后执行。
- * @return {function}实际调用函数
- */
-function debounce(fn, delay, immediate) {
-  return throttle(fn, delay, immediate, true);
-}
+const utils = new Utils();
 
 
 /**
@@ -61,7 +70,7 @@ class ContentExtractor {
     this.href = pageHref;
     this.title = pageTitle;
     this.targetNode = targetNode;
-    this.debouncedGetAllText = debounce(this.getAllText, 1000, false);
+    this.debouncedGetAllText = utils.debounce(this.getAllText, 1000, false);
   }
 
   // 获取一个节点的文本内容
@@ -125,17 +134,15 @@ class ContentExtractor {
    */
   getAllText() {
     const currentContent = this.traverseChild(this.targetNode);
-    const result = currentContent;
+    const content = currentContent;
     /** 在这个地方向后台发送数据 **/
-    console.log(`page url: ${this.href}`);
-    console.log(`page title: ${this.title}`);
-    console.log(result);
-
-    var info = {
+    const pageInfo = {
       "url": this.href,
       "title": this.title.replace(/\"/g, "\\\""),
-      "text": result,
+      "content": content,
     }
+    // console.log(pageInfo);
+    utils.connector.postMessage(pageInfo);
 
     // var urlMd5 = md5(info.url);
     // var textMd5 = md5(info.text);
