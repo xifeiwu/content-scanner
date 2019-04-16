@@ -1,0 +1,19 @@
+{
+  "name": "baguazhen",
+  "version": "1.0",
+  "manifest_version": 2,
+  "description": "finupgroup",
+  "browser_action": {
+    "default_title": "bgz-lite"
+  },
+  "background": {
+    "scripts": ["js/background.js"]
+  },
+  "content_scripts": [
+        {
+            "matches": ["http://*/*", "https://*/*"],
+            "js": ["js/jquery-3.3.1.min.js", "js/aes.js", "js/md5.min.js", "js/utils.js", "js/getPageInfo.js"]
+        }
+  ],
+  "permissions": ["tabs", "storage", "<all_urls>"]
+}
