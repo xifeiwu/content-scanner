@@ -53,12 +53,15 @@ function debounce(fn, delay, immediate) {
 }
 
 
+/**
+ * 获取结点文本内容
+ */
 class ContentExtractor {
   constructor(pageHref, pageTitle, targetNode) {
     this.href = pageHref;
     this.title = pageTitle;
     this.targetNode = targetNode;
-    this.debouncedGetAllText = debounce(this.getAllText, 3000, false);
+    this.debouncedGetAllText = debounce(this.getAllText, 1000, false);
   }
 
   // 获取一个节点的文本内容
@@ -67,30 +70,20 @@ class ContentExtractor {
     if (node.tagName === 'INPUT' || node.tagName === 'TEXTAREA') {
       return node.value;
     }
-    if (node.tagName === 'DIV') {
-      return node.innerText;
-    }
-    if (node.tagName === 'SCRIPT') {
+    if (['SCRIPT', 'STYLE', 'NOSCRIPT'].indexOf(node.tagName) > -1) {
       return '';
     }
-    if (node.tagName === 'STYLE') {
-      return '';
-    }
-    if (node.tagName === 'NOSCRIPT') {
-      return '';
-    }
-    if (['A', 'SPAN', 'B', 'LI', 'TEXT', 'I', 'TH', 'TD'].indexOf(tagName) > -1) {
+    if (['DIV', 'A', 'SPAN', 'B', 'LI', 'TEXT', 'I', 'TH', 'TD'].indexOf(tagName) > -1) {
       return node.innerText;
     }
     return node.textContent;
   }
 
-  // 获取node及子节点文本内容
+  // (通过递归的方式)获取node结点下的所有文本内容
   traverseChild(node) {
     if (!node) {
       return '';
     }
-    // console.log(node);
     const nodeType = node.nodeType;
     const tagName = node.tagName;
 
@@ -144,30 +137,27 @@ class ContentExtractor {
       "text": result,
     }
 
-    var urlMd5 = md5(info.url);
-    var textMd5 = md5(info.text);
+    // var urlMd5 = md5(info.url);
+    // var textMd5 = md5(info.text);
 
-    chrome.storage.local.get(urlMd5, function(result){
-        chrome.storage.local.set({[urlMd5]: textMd5}, function(){
-//          if (textMd5 == result[urlMd5]) {
-            let message = "{\"timestamp\": " + Date.now() + ", ";
-            message += "\"mobile\": {\"name\": \"手机号\", \"no\": " + get_match_num(info.text, "mobile") + "}, ";
-            message += "\"idcard\": {\"name\": \"身份证号\", \"no\": " + get_match_num(info.text, "idcard") + "}, ";
-            message += "\"bankcard\": {\"name\": \"银行卡号\", \"no\": " + get_match_num(info.text, "bankcard") + "}, ";
-            message += "\"desensitive\": {\"name\": \"脱敏值\", \"no\": " + get_match_num(info.text, "desensitive") + "}}";
-//            console.log(message);
-
-            getSecret().then(function(result){
-              info["message"] = encrypt(message, result.key, result.iv);
-              chrome.runtime.connect({name: "sendPageInfo"}).postMessage(info);
-            });
-//          }
-        });
-    });
+    // chrome.storage.local.get(urlMd5, function(result){
+    //   chrome.storage.local.set({[urlMd5]: textMd5}, function(){
+    //     let message = "{\"timestamp\": " + Date.now() + ", ";
+    //     message += "\"mobile\": {\"name\": \"手机号\", \"no\": " + get_match_num(info.text, "mobile") + "}, ";
+    //     message += "\"idcard\": {\"name\": \"身份证号\", \"no\": " + get_match_num(info.text, "idcard") + "}, ";
+    //     message += "\"bankcard\": {\"name\": \"银行卡号\", \"no\": " + get_match_num(info.text, "bankcard") + "}, ";
+    //     message += "\"desensitive\": {\"name\": \"脱敏值\", \"no\": " + get_match_num(info.text, "desensitive") + "}}";
+    //     getSecret().then(function(result){
+    //       info["message"] = encrypt(message, result.key, result.iv);
+    //       chrome.runtime.connect({name: "sendPageInfo"}).postMessage(info);
+    //     });
+    //   });
+    // });
   }
 }
 
 
+/** contentExtractor工厂方法 */
 const extractorMap = {};
 function getContentExtractor(href, title, targetNode) {
   if (!targetNode) {
@@ -182,6 +172,9 @@ function getContentExtractor(href, title, targetNode) {
 }
 
 
+/**
+ * 获取页面内容，在页面发生任何变化时获取页面内容
+ */
 class MutationHelper {
   /** 
    * @param win, window对象 
