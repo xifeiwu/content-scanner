@@ -7,12 +7,12 @@
     "default_title": "bgz-lite"
   },
   "background": {
-    "scripts": ["js/background.js"]
+    "page": "background.html"
   },
   "content_scripts": [
     {
       "matches": ["http://*/*", "https://*/*"],
-      "js": ["js/jquery-3.3.1.min.js", "js/aes.js", "js/utils.js", "js/content-script.js"]
+      "js": ["js/jquery-3.3.1.min.js", "js/content-script.js"]
     }
   ],
   "permissions": ["tabs", "storage", "<all_urls>"]

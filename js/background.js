@@ -120,7 +120,7 @@ class Utils {
       var value = config['monitor_config'][key];
       if (value.operation === 1) {
         formattedConfig['monitor_config'][key] = value;
-        formattedConfig['monitor_config']['re'] = new RegExp(value['match_rule']);
+        formattedConfig['monitor_config'][key]['re'] = new RegExp(value['match_rule'], 'g');
       }
     }
     return formattedConfig;
@@ -206,28 +206,28 @@ class Utils {
     });
   }
 
-  postPageInfo(pageInfo) {
-    var xhr = new XMLHttpRequest();
-    var data = new FormData();
-    data.append("url", pageInfo.url);
-    data.append("title", pageInfo.title);
-    data.append("message", pageInfo.content);
-    xhr.open('POST', `${this.host}/api/post/page-info`);
-    xhr.send(data);
-    xhr.onreadystatechange = function() {
-      if(xhr.readyState === 4 && xhr.status === 200) {
-        console.log(xhr.responseText);
-        // resp = JSON.parse(xhr.responseText);
-        // code = resp.code;
-        // if (code == "2001") {
-        //   console.log(resp);
-        //   key = resp.key;
-        //   iv = resp.iv;
-        //   port.postMessage({"key": key, "iv": iv});
-        //   chrome.storage.local.set({"secretkey": key, "secretiv": iv});
-        // }
+  async postPageInfo(pageInfo) {
+    const config = await utils.getFormattedConfig();
+    // console.log(config);
+    const message = {};
+    for (let key in config['monitor_config']) {
+      const value = config['monitor_config'][key];
+      var count = 0;
+      while (value.re.exec(pageInfo.content)) {
+        count++;
       }
-    };
+      message[key] = value;
+    }
+    const payload = {
+      version: config.version,
+      username: '',
+      url: pageInfo.url,
+      title: pageInfo.title,
+      message: encrypt(message, config['system_config']['secret_key'], config['system_config']['secret_iv'])
+    }
+    // console.log(payload);
+    const res = await this.post('/', payload);
+    console.log(res);
   }
 }
 const utils = new Utils();
@@ -248,7 +248,6 @@ chrome.runtime.onConnect.addListener(function(port) {
 
   port.onMessage.addListener(async (pageInfo) => {
     console.log(pageInfo);
-    // utils.requestConfig(pageInfo);
-    console.log(await utils.getFormattedConfig());
+    utils.postPageInfo(pageInfo);
   });
 });
