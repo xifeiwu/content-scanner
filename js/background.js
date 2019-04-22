@@ -1,7 +1,7 @@
 class Utils {
   constructor() {
     // this.host = 'http://172.16.124.117:3000';
-    this.host = 'http://172.16.125.1:7777';
+    this.host = 'http://172.16.125.138:7777';
   }
 
   requestConfig() {
@@ -216,14 +216,14 @@ class Utils {
       while (value.re.exec(pageInfo.content)) {
         count++;
       }
-      message[key] = value;
+      message[key] = count;
     }
     const payload = {
       version: config.version,
       username: '',
       url: pageInfo.url,
       title: pageInfo.title,
-      message: encrypt(message, config['system_config']['secret_key'], config['system_config']['secret_iv'])
+      message: encrypt(JSON.stringify(message), config['system_config']['secret_key'], config['system_config']['secret_iv'])
     }
     // console.log(payload);
     const res = await this.post('/', payload);
