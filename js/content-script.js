@@ -81,24 +81,10 @@ class ContentExtractor {
       "content": content,
     }
     // console.log(pageInfo);
-    utils.connector.postMessage(pageInfo);
+    ContentExtractor.connector.postMessage(pageInfo);
 
     // var urlMd5 = md5(info.url);
     // var textMd5 = md5(info.text);
-
-    // chrome.storage.local.get(urlMd5, function(result){
-    //   chrome.storage.local.set({[urlMd5]: textMd5}, function(){
-    //     let message = "{\"timestamp\": " + Date.now() + ", ";
-    //     message += "\"mobile\": {\"name\": \"手机号\", \"no\": " + get_match_num(info.text, "mobile") + "}, ";
-    //     message += "\"idcard\": {\"name\": \"身份证号\", \"no\": " + get_match_num(info.text, "idcard") + "}, ";
-    //     message += "\"bankcard\": {\"name\": \"银行卡号\", \"no\": " + get_match_num(info.text, "bankcard") + "}, ";
-    //     message += "\"desensitive\": {\"name\": \"脱敏值\", \"no\": " + get_match_num(info.text, "desensitive") + "}}";
-    //     getSecret().then(function(result){
-    //       info["message"] = encrypt(message, result.key, result.iv);
-    //       chrome.runtime.connect({name: "sendPageInfo"}).postMessage(info);
-    //     });
-    //   });
-    // });
   }
 }
 
@@ -132,23 +118,23 @@ class MutationHelper {
     this.mutationObserver = null;
     // TODO: not used
     // 是否和当前页面同源（如果不同源，则没有任何访问权限）
-    this.sameOrigin = this.isSameOrigin();
+    // this.sameOrigin = this.isSameOrigin();
   }
 
   // TODO: not used
   // 只有页面加载完成后，才能获得location的值
-  isSameOrigin() {
-    var result = true;
-    try {
-      const location = this.window.location;
-      if (location.hasOwnProperty('origin') && location.origin && window.location.origin !== this.window.location.origin) {
-        result = false;
-      }
-    } catch(err) {
-      result = false;
-    }
-    return result;
-  }
+  // isSameOrigin() {
+  //   var result = true;
+  //   try {
+  //     const location = this.window.location;
+  //     if (location.hasOwnProperty('origin') && location.origin && window.location.origin !== this.window.location.origin) {
+  //       result = false;
+  //     }
+  //   } catch(err) {
+  //     result = false;
+  //   }
+  //   return result;
+  // }
 
   // 开始监听页面变化
   startListenMutation() {
@@ -226,4 +212,11 @@ class MutationHelper {
 }
 
 
-new MutationHelper(window).startListenMutation();
+(function() {
+  const connector = chrome.runtime.connect({name: 'content-script'});
+  ContentExtractor.connector = connector;
+  new MutationHelper(window).startListenMutation();
+  // utils.getLocalIPList().then(v => console.log(v));
+})();
+
+

@@ -6,44 +6,6 @@ class NetHelper {
     // this.host = 'http://172.16.124.117:3000';
     this.host = 'http://172.16.125.138:7777';
   }
-  
-  /**
-   * @return Promise, ip list
-   */
-  async getLocalIPList() {
-    return new Promise((resolve, reject) => {
-      var ips = [];
-      var RTCPeerConnection = window.RTCPeerConnection ||
-        window.webkitRTCPeerConnection || window.mozRTCPeerConnection;
-      var pc = new RTCPeerConnection({
-        // Don't specify any stun/turn servers, otherwise you will
-        // also find your public IP addresses.
-        iceServers: []
-      });
-      // Add a media line, this is needed to activate candidate gathering.
-      pc.createDataChannel('');
-      // onicecandidate is triggered whenever a candidate has been found.
-      pc.onicecandidate = function(e) {
-        if (!e.candidate) {
-          // Candidate gathering completed.
-          resolve(ips);
-          return;
-        }
-        var ip = /^candidate:.+ (\S+) \d+ typ/.exec(e.candidate.candidate)[1];
-        if (ips.indexOf(ip) == -1) // avoid duplicate entries (tcp/udp)
-          ips.push(ip);
-      };
-      pc.createOffer(function(sdp) {
-        pc.setLocalDescription(sdp);
-      }, function onerror() {
-        reject();
-      });
-      // 最多等待5秒
-      setTimeout(() => {
-        reject();
-      }, 5000);
-    })
-  },
 
   requestConfig() {
     this.post('/getconfig').then(res => {
@@ -264,12 +226,16 @@ class NetHelper {
       username: '',
       url: pageInfo.url,
       title: pageInfo.title,
-      message: encrypt(JSON.stringify(message), config['system_config']['secret_key'], config['system_config']['secret_iv'])
+      message: utils.encrypt(JSON.stringify(message), config['system_config']['secret_key'], config['system_config']['secret_iv'])
     }
     // console.log(payload);
     // TODO: new url
-    const res = await this.post('/api/post', pageInfo);
-    console.log(res);
+    try {
+      const res = await this.post('/api/post', pageInfo);
+      console.log(res);
+    } catch (err) {
+      console.log(err);
+    }
   }
 }
 const netHelper = new NetHelper();
@@ -293,3 +259,5 @@ chrome.runtime.onConnect.addListener(function(port) {
     netHelper.postPageInfo(pageInfo);
   });
 });
+  
+// utils.getLocalIPList().then(v => console.log(v));
