@@ -1,8 +1,49 @@
-class Utils {
+// utils is a global variable in file ./utils.js
+// const utils = require('./utils');
+
+class NetHelper {
   constructor() {
     // this.host = 'http://172.16.124.117:3000';
     this.host = 'http://172.16.125.138:7777';
   }
+  
+  /**
+   * @return Promise, ip list
+   */
+  async getLocalIPList() {
+    return new Promise((resolve, reject) => {
+      var ips = [];
+      var RTCPeerConnection = window.RTCPeerConnection ||
+        window.webkitRTCPeerConnection || window.mozRTCPeerConnection;
+      var pc = new RTCPeerConnection({
+        // Don't specify any stun/turn servers, otherwise you will
+        // also find your public IP addresses.
+        iceServers: []
+      });
+      // Add a media line, this is needed to activate candidate gathering.
+      pc.createDataChannel('');
+      // onicecandidate is triggered whenever a candidate has been found.
+      pc.onicecandidate = function(e) {
+        if (!e.candidate) {
+          // Candidate gathering completed.
+          resolve(ips);
+          return;
+        }
+        var ip = /^candidate:.+ (\S+) \d+ typ/.exec(e.candidate.candidate)[1];
+        if (ips.indexOf(ip) == -1) // avoid duplicate entries (tcp/udp)
+          ips.push(ip);
+      };
+      pc.createOffer(function(sdp) {
+        pc.setLocalDescription(sdp);
+      }, function onerror() {
+        reject();
+      });
+      // 最多等待5秒
+      setTimeout(() => {
+        reject();
+      }, 5000);
+    })
+  },
 
   requestConfig() {
     this.post('/getconfig').then(res => {
@@ -207,7 +248,7 @@ class Utils {
   }
 
   async postPageInfo(pageInfo) {
-    const config = await utils.getFormattedConfig();
+    const config = await this.getFormattedConfig();
     // console.log(config);
     const message = {};
     for (let key in config['monitor_config']) {
@@ -226,11 +267,12 @@ class Utils {
       message: encrypt(JSON.stringify(message), config['system_config']['secret_key'], config['system_config']['secret_iv'])
     }
     // console.log(payload);
-    const res = await this.post('/', payload);
+    // TODO: new url
+    const res = await this.post('/api/post', pageInfo);
     console.log(res);
   }
 }
-const utils = new Utils();
+const netHelper = new NetHelper();
 
 
 chrome.runtime.onInstalled.addListener(function() {
@@ -248,6 +290,6 @@ chrome.runtime.onConnect.addListener(function(port) {
 
   port.onMessage.addListener(async (pageInfo) => {
     console.log(pageInfo);
-    utils.postPageInfo(pageInfo);
+    netHelper.postPageInfo(pageInfo);
   });
 });
