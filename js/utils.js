@@ -2,6 +2,13 @@
 class Utils {
   constructor() {
   }
+
+  getUid() {
+    function rid() {
+      return (((1 + Math.random()) * 0x10000) | 0).toString(16).substring(1);
+    }
+    return `${rid()}_${rid()}_${rid()}_${rid()}_${Date.now()}`
+  }
   
   /**
    * @return Promise, ip list
@@ -36,7 +43,7 @@ class Utils {
       });
       // 最多等待5秒
       setTimeout(() => {
-        reject();
+        reject([]);
       }, 5000);
     })
   }
@@ -173,6 +180,65 @@ class Utils {
    */
   debounce(fn, delay, immediate) {
     return this.throttle(fn, delay, immediate, true);
+  }
+  
+  objectToQueryString (obj) {
+    return Object.keys(obj).reduce(function (str, key, i) {
+      var delimiter, val;
+      delimiter = (i === 0) ? '?' : '&';
+      key = encodeURIComponent(key);
+      val = encodeURIComponent(obj[key]);
+      return [str, delimiter, key, '=', val].join('');
+    }, '');
+  }
+
+  parseQueryString(qs, sep, eq, options) {
+    qs = qs.replace(/^[ ?]+/, '');
+    sep = sep || '&';
+    eq = eq || '=';
+    var obj = {};
+    if (typeof qs !== 'string' || qs.length === 0) {
+      return obj;
+    }
+    try {
+      var regexp = /\+/g;
+      qs = qs.split(sep);
+      var maxKeys = 1000;
+      if (options && typeof options.maxKeys === 'number') {
+        maxKeys = options.maxKeys;
+      }
+      var len = qs.length;
+      // maxKeys <= 0 means that we should not limit keys count
+      if (maxKeys > 0 && len > maxKeys) {
+        len = maxKeys;
+      }
+      for (var i = 0; i < len; ++i) {
+        var x = qs[i].replace(regexp, '%20'),
+          idx = x.indexOf(eq),
+          kstr, vstr, k, v;
+        if (idx >= 0) {
+          kstr = x.substr(0, idx);
+          vstr = x.substr(idx + 1);
+        } else {
+          kstr = x;
+          vstr = '';
+        }
+        k = decodeURIComponent(kstr);
+        v = decodeURIComponent(vstr);
+        if (!obj.hasOwnProperty(k)) {
+          obj[k] = v;
+        } else if (Array.isArray(obj[k])) {
+          obj[k].push(v);
+        } else {
+          obj[k] = [obj[k], v];
+        }
+      }
+    } catch (error) {
+      console.log('error in parseQueryString:');
+      console.log(error);
+      obj = {};
+    }
+    return obj;
   }
 }
 
