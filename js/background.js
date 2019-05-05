@@ -1,10 +1,84 @@
-// utils is a global variable in file ./utils.js
+/** global utils, axios */
 // const utils = require('./utils');
+// const axios = require('./axios');
 
 class NetHelper {
   constructor() {
     // this.host = 'http://172.16.124.117:3000';
     this.host = 'http://172.16.125.138:7777';
+  }
+
+  /**
+   * 格式化请求
+   * @param path
+   * @param method
+   * @param options,
+   * @param config, config for axios
+   * @returns request in the form of Promise
+   */
+  getResponse({path, method}, options = {}, config) {
+    try {
+      let instance = axios;
+      if (config) {
+        instance = axios.create(config);
+      }
+      if (!path || !method) {
+        return Promise.reject({
+          title: '参数错误',
+          message: '未设置请求方式'
+        });
+      }
+      let payload = {};
+      if (options.params) {
+        Object.keys(options.params).forEach((key) => {
+          // path = path.replace('{' + key + '}', encodeURIComponent(options.params[key]));
+          path = path.replace('{' + key + '}', options.params[key]);
+        });
+      }
+      if (options.query) {
+        path = path + '?' + utils.objectToQueryString(options.query);
+      }
+      if (options.payload) {
+        payload = options.payload;
+      }
+      return instance[method](path, payload);
+    } catch(err) {
+      // 捕获参数处理的错误
+      console.log(`error of getResponse:`);
+      console.log(err);
+      return Promise.reject(err);
+    } finally {
+    }
+  }
+
+  isRequestSuccess() {
+    return true;
+  }
+
+  async request({path, method}, options = {}) {
+    try {
+      const response = await this.getResponse({path, method}, options, {
+        timeout: 15000,
+      });
+      const resData = response.data;
+      if (this.isRequestSuccess(resData)) {
+        return resData;
+      } else {
+      }
+    } catch (error) {
+      // 捕获网络请求的错误
+      console.log(`error of request:`);
+      console.log(error);
+      console.log(error.isAxiosError);
+      if (error.isAxiosError) {
+        console.log(error.config);
+        console.log(error.code);
+        console.log(error.request);
+        console.log(error.response);
+        console.log(error.toJSON);
+      }
+      return null;
+    }
   }
 
   requestConfig() {
@@ -260,4 +334,4 @@ chrome.runtime.onConnect.addListener(function(port) {
   });
 });
   
-// utils.getLocalIPList().then(v => console.log(v));
+utils.getLocalIPList().then(v => console.log(v));
