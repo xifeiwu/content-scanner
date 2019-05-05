@@ -1,6 +1,75 @@
 
 class Utils {
   constructor() {
+    this.regMap = {
+      mail: /^([\w-_]+(?:\.[\w-_]+)*)@((?:[a-z0-9]+(?:-[a-zA-Z0-9]+)*)+\.[a-z]{2,6})$/,
+      ipOnly: /^([0-2]*[0-9]{1,2})\.([0-2]*[0-9]{1,2})\.([0-2]*[0-9]{1,2})\.([0-2]*[0-9]{1,2})$/,
+      ipWithMask: /^([0-2]*[0-9]{1,2})\.([0-2]*[0-9]{1,2})\.([0-2]*[0-9]{1,2})\.([0-2]*[0-9]{1,2})(\/[0-9]+)?$/,
+      number: /^[0-9]+$/
+    }
+  }
+  getReg(type) {
+    let result = null;
+    if (this.regMap.hasOwnProperty(type)) {
+      result = this.regMap[type];
+    }
+    return result;
+  }
+
+  isNumber(n) {
+    return !isNaN(parseFloat(n)) && isFinite(n);
+  }
+
+  isInteger(n) {
+    return Number.isInteger(n);
+  }
+
+  isString(s) {
+    return typeof(s) === 'string' || s instanceof String;
+  }
+
+  isDate(n) {
+    return n instanceof Date;
+  }
+
+  isObject(value) {
+    var type = typeof value;
+    return value != null && (type == 'object' || type == 'function');
+  }
+
+  isRegExp(obj) {
+    return obj instanceof RegExp
+  }
+
+  escapeRegexp(str) {
+    if (typeof str !== 'string') {
+      throw new TypeError('Expected a string');
+    }
+    return String(str).replace(/([.*+?=^!:${}()|[\]\/\\])/g, '\\$1');
+  }
+
+  /**
+   * Check if the given variable is a function
+   * @method
+   * @memberof Popper.Utils
+   * @argument {Any} functionToCheck - variable to check
+   * @returns {Boolean} answer to: is a function?
+   */
+  isFunction(functionToCheck) {
+    var getType = {};
+    return functionToCheck && getType.toString.call(functionToCheck) === '[object Function]';
+  }
+
+  // copy from node module shvl
+  shvlGet (object, path, def) {
+    return (object = (path.split ? path.split('.') : path).reduce(function (obj, p) {
+      return obj && obj[p]
+    }, object)) === undefined ? def : object;
+  }
+  shvlSet  (object, path, val, obj) {
+    return ((path = path.split ? path.split('.') : path).slice(0, -1).reduce(function (obj, p) {
+      return obj[p] = obj[p] || {};
+    }, obj = object)[path.pop()] = val), object;
   }
 
   getUid() {
@@ -32,9 +101,10 @@ class Utils {
           resolve(ips);
           return;
         }
-        var ip = /^candidate:.+ (\S+) \d+ typ/.exec(e.candidate.candidate)[1];
-        if (ips.indexOf(ip) == -1) // avoid duplicate entries (tcp/udp)
+        var ip = /([0-9]{1,3}(\.[0-9]{1,3}){3}|[a-f0-9]{1,4}(:[a-f0-9]{1,4}){7})/.exec(e.candidate.candidate)[1];
+        if (ips.indexOf(ip) == -1) { // avoid duplicate entries (tcp/udp)
           ips.push(ip);
+        }
       };
       pc.createOffer(function(sdp) {
         pc.setLocalDescription(sdp);
@@ -43,9 +113,48 @@ class Utils {
       });
       // 最多等待5秒
       setTimeout(() => {
-        reject([]);
+        reject(ips);
       }, 5000);
     })
+  }
+
+  /**
+   * transfer to formated date string
+   * @date timestamp of date
+   * @fmt the format of result, such as yyyy-MM-dd hh:mm:ss
+   */
+  formatDate(date, fmt) {
+    if (!date) {
+      return '未知';
+    }
+    if (!this.isDate(date)) {
+      if (this.isString(date)) {
+        date = parseInt(date);
+      }
+      if (this.isNumber(date)) {
+        date = new Date(date);
+      }
+    }
+    // console.log('date');
+    // console.log(date);
+    var o = {
+      'M+': date.getMonth() + 1, //月份
+      'd+': date.getDate(), //日
+      'h+': date.getHours(), //小时
+      'm+': date.getMinutes(), //分
+      's+': date.getSeconds(), //秒
+      'q+': Math.floor((date.getMonth() + 3) / 3), //季度
+      'S': date.getMilliseconds() //毫秒
+    };
+    if (/(y+)/.test(fmt)) {
+      fmt = fmt.replace(RegExp.$1, (date.getFullYear() + '').substr(4 - RegExp.$1.length));
+    }
+    for (var k in o) {
+      if (new RegExp('(' + k + ')').test(fmt)) {
+        fmt = fmt.replace(RegExp.$1, (RegExp.$1.length === 1) ? (o[k]) : (('00' + o[k]).substr(('' + o[k]).length)));
+      }
+    }
+    return fmt;
   }
 
   getSecret() {
@@ -241,6 +350,4 @@ class Utils {
     return obj;
   }
 }
-
-const utils = new Utils();
 
