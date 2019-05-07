@@ -5,7 +5,6 @@ const utils = new Utils();
 const net = new Net();
 const tabs = new Tabs();
 
-
 class Helper {
   constructor() {
     this.communication();
@@ -45,9 +44,9 @@ class Helper {
       });
       return response && response.action === 'pong';
     }
-    // async function get
 
     tabs.tabWatcher(async obj => {
+      // console.log(obj);
       if (!obj) {
         return;
       }
@@ -60,7 +59,6 @@ class Helper {
         return;
       }
       try {
-        // console.log(await isConnected(tabId, tab));
         if (await isConnected(tabId, tab)) {
           // if (tab && tab.url) {
           //   const parser = utils.parseUrl(tab.url);
@@ -82,5 +80,7 @@ class Helper {
     });
   }
 }
-  
+
+const helper = new Helper();
 utils.getLocalIPList().then(v => console.log(v));
+

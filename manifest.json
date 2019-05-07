@@ -15,5 +15,10 @@
       "js": ["js/common/utils.js", "js/content.js"]
     }
   ],
-  "permissions": ["tabs", "storage", "<all_urls>"]
+  "permissions": [
+    "tabs",
+    "activeTab",
+    "storage",
+    "<all_urls>"
+  ]
 }
