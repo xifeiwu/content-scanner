@@ -31,7 +31,7 @@ class MutationWatcher {
          * 1. 输出页面内容
          * 2. 为页面的所有iframe添加变动监听
          */
-         this.cb(documentBody);
+        this.cb(documentBody);
         this.addListenerForIFrame();
       });
       var options = {
@@ -54,7 +54,8 @@ class MutationWatcher {
         waitOneSecond();
       } else {
         this.window.addEventListener('load', waitOneSecond);
-        this.window.addEventListener('hashchange', waitOneSecond);
+        // hashchange will trigget chrome.tabs.onChanged
+        // this.window.addEventListener('hashchange', waitOneSecond);
       }
     } catch(err) {
       console.log(err);
@@ -116,6 +117,21 @@ class Helper {
             // this.pushCount();
           });
           break;
+        case 'request-page-content':
+          if (this.firstGlance) {
+            sendResponse(null);
+            // 通过mutationObserver主动向background推送
+          } else {
+            sendResponse(true);
+            this.sendBodyText(document.body);
+            // sendResponse after utils.getTextAll will cause error: The message port closed before a response was received.
+            // const bodyText = utils.getTextAll(document.body)
+            // sendResponse({
+            //   action,
+            //   data: bodyText
+            // })
+          }
+          break;
       }
     });
   }
@@ -136,16 +152,20 @@ class Helper {
     return response;
   }
 
-  async sendBodyText(node) {
+  sendBodyText(node) {
     const bodyText = utils.getTextAll(node);
-    console.log(bodyText);
+    // console.log(bodyText);
+    this.sendMessage({
+      action: 'send-page-content',
+      data: bodyText
+    });
   }
 
   watchPageMutation() {
-    const mutationWatcher = new MutationWatcher(window);
-    mutationWatcher.startListenMutation(() => {
+    const mutationWatcher = new MutationWatcher(window, () => {
         this.sendBodyText(document.body);
     });
+    mutationWatcher.startListenMutation();
     function onWindowVisibilityChange(cb) {
       // 各种浏览器兼容
       var hidden, state, visibilityChange;

@@ -13,8 +13,8 @@ class Helper {
   async communication() {
     // async await will cause error: (Unchecked runtime.lastError: The message port closed before a response was received.)
     chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-      console.log(sender);
-      console.log(request);
+      // console.log(sender);
+      // console.log(request);
       if (!request || !request.action) {
         sendResponse(null);
         return;
@@ -24,8 +24,32 @@ class Helper {
         sendResponse(null);
         return;
       }
+      const action = request.action;
+      switch (action) {
+        case 'send-page-content':
+          console.log('send-page-content');
+          console.log(request);
+          break;
+      }
       sendResponse(tab);
     });
+
+    async function requestPageContent(tabId) {
+      const response = await new Promise((resolve, reject) => {
+        chrome.tabs.sendMessage(tabId, {
+          action: 'request-page-content',
+          data: {
+            tabId
+          }
+        }, (response) => {
+          chrome.runtime.lastError
+            ? reject(Error(chrome.runtime.lastError.message))
+            : resolve(response)
+        });
+      });
+      // console.log('request-page-content');
+      // console.log(response);
+    }
 
     async function isConnected(tabId, tab) {
       // check if content-script is injected
@@ -47,7 +71,7 @@ class Helper {
 
     tabs.tabWatcher(async obj => {
       // console.log(obj);
-      if (!obj) {
+      if (!obj || obj.action === 'onRemoved') {
         return;
       }
       var tabId = obj.tabId;
@@ -55,11 +79,13 @@ class Helper {
         tabId = obj['tab']['id'];
       }
       var tab = obj.tab;
+      // only handle protocol http and https
       if (!tab || !tab.url ||  !/^[http|https]/.test(tab.url)) {
         return;
       }
       try {
         if (await isConnected(tabId, tab)) {
+          requestPageContent(tabId);
           // if (tab && tab.url) {
           //   const parser = utils.parseUrl(tab.url);
           //   if (parser.host) {
