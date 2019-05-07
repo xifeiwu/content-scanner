@@ -12,7 +12,7 @@
   "content_scripts": [
     {
       "matches": ["http://*/*", "https://*/*"],
-      "js": ["js/utils.js", "js/content.js"]
+      "js": ["js/common/utils.js", "js/content.js"]
     }
   ],
   "permissions": ["tabs", "storage", "<all_urls>"]

@@ -1,107 +1,74 @@
-// utils is a global variable in file ./utils.js
-// const utils = require('./utils');
+const utils = new Utils();
 
-/**
- * 获取结点文本内容
- */
-class ContentExtractor {
-  constructor(pageHref, pageTitle, targetNode) {
-    this.href = pageHref;
-    this.title = pageTitle;
-    this.targetNode = targetNode;
-    this.debouncedGetAllText = utils.debounce(this.getAllText, 1000, false);
+class Helper {
+  constructor() {
+    this.tabId = null;
+    this.tab = null;
   }
-
-  // 获取一个节点的文本内容
-  getNodeText(node) {
-    const tagName = node.tagName;
-    if (node.tagName === 'INPUT' || node.tagName === 'TEXTAREA') {
-      return node.value;
-    }
-    if (['SCRIPT', 'STYLE', 'NOSCRIPT'].indexOf(node.tagName) > -1) {
-      return '';
-    }
-    if (['DIV', 'A', 'SPAN', 'B', 'LI', 'TEXT', 'I', 'TH', 'TD'].indexOf(tagName) > -1) {
-      return node.innerText;
-    }
-    return node.textContent;
-  }
-
-  // (通过递归的方式)获取node结点下的所有文本内容
-  traverseChild(node) {
-    if (!node) {
-      return '';
-    }
-    const nodeType = node.nodeType;
-    const tagName = node.tagName;
-
-    if (nodeType == 8) {
-      // 注释comments
-      return '';
-    } else if (['SCRIPT', 'STYLE', 'NOSCRIPT'].indexOf(tagName) > -1) {
-      // 忽略script, style, noscript中的内容
-      return '';
-    } else if('IFRAME' === tagName) {
-      // console.log(node);
-      // console.log(node.contentWindow.document.body.textContent);
-      // console.log(node.contentWindow.location.origin);
-      // 获取iframe中的内容
-      try {
-        // 处理跨域的问题
-        if (window.location.origin === node.contentWindow.location.origin) {
-          return [node.contentWindow.href, '\n'].concat(
-            Array.prototype.slice.call(node.contentWindow.document.body.childNodes).map(this.traverseChild.bind(this))
-          ).join('');
-        }
-      } catch (err) {
-        return '';
+  
+  onListen() {
+    chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+      const action = request.action;
+      switch (action) {
+        // headshake
+        case 'ping':
+          if (!request.data) {
+            sendResponse(null);
+            return;
+          }
+          this.tab = request.data.hasOwnProperty('tab') ? request.data['tab'] : null;
+          this.tabId = request.data.hasOwnProperty('tabId') ? request.data['tabId'] : null;
+          sendResponse({
+            action: "pong",
+          });
+          setTimeout(() => {
+            // this.sendCount();
+            // this.pushCount();
+          });
+          break;
       }
-    } else if (node.childNodes.length > 0) {
-      return Array.prototype.slice.call(node.childNodes).map(this.traverseChild.bind(this)).join('');
-    } else {
-     var content = this.getNodeText(node);
-     if (content) {
-       return content.trim() + ' ';
-     } else {
-       return '';
-     }
-    }
+    });
   }
 
   /**
+   * sendMessage to chrome.runtime
+   * @param {obj}, object with format: {action, data}
+   * @return {response}, response from chrome.runtime
+   */
+  async sendMessage(obj) {
+    const response = await new Promise((resolve, reject) => {
+      chrome.runtime.sendMessage(obj, response => {
+        chrome.runtime.lastError
+          ? reject(Error(chrome.runtime.lastError.message))
+          : resolve(response)
+      });
+    });
+    return response;
+  }
+
+  async sendBodyText(node) {
+    const bodyText = utils.getTextAll(node);
+    console.log(bodyText);
+  }
+
+  /**
+   * TODO: not used
    * 获取当前页面及当前页面iframe的内容
    */
   getAllText() {
-    const currentContent = this.traverseChild(this.targetNode);
+    const currentContent = this.getTextAll(this.targetNode);
     const content = currentContent;
     /** 在这个地方向后台发送数据 **/
     const pageInfo = {
-      "url": this.href,
-      "title": this.title.replace(/\"/g, "\\\""),
       "content": content,
     }
-    // console.log(pageInfo);
-    ContentExtractor.connector.postMessage(pageInfo);
-
+    // ContentExtractor.connector.postMessage(pageInfo);
     // var urlMd5 = md5(info.url);
     // var textMd5 = md5(info.text);
   }
 }
 
-
-/** contentExtractor工厂方法 */
-const extractorMap = {};
-function getContentExtractor(href, title, targetNode) {
-  if (!targetNode) {
-    return {
-      debouncedGetAllText: () => {}
-    }
-  }
-  if (!extractorMap.hasOwnProperty(href)) {
-    extractorMap[href] = new ContentExtractor(href, title, targetNode);
-  }
-  return extractorMap[href];
-}
+const helper = new Helper();
 
 
 /**
@@ -116,25 +83,7 @@ class MutationHelper {
     // this.iframeList = [];
     this.iframeMutationHelperList = [];
     this.mutationObserver = null;
-    // TODO: not used
-    // 是否和当前页面同源（如果不同源，则没有任何访问权限）
-    // this.sameOrigin = this.isSameOrigin();
   }
-
-  // TODO: not used
-  // 只有页面加载完成后，才能获得location的值
-  // isSameOrigin() {
-  //   var result = true;
-  //   try {
-  //     const location = this.window.location;
-  //     if (location.hasOwnProperty('origin') && location.origin && window.location.origin !== this.window.location.origin) {
-  //       result = false;
-  //     }
-  //   } catch(err) {
-  //     result = false;
-  //   }
-  //   return result;
-  // }
 
   // 开始监听页面变化
   startListenMutation() {
@@ -143,10 +92,7 @@ class MutationHelper {
       this.stopListenMutation();
       const currentDocument = this.window.document;
       const documentBody = currentDocument.body;
-//       console.log(`${this.window.location.href}: ${currentDocument.readyState}`);
-//       console.log(documentBody);
-      // 页面load完毕后，展示页面内容
-      getContentExtractor(this.window.location.href, this.window.document.title, documentBody).debouncedGetAllText();
+      helper.sendBodyText(document.body);
       this.addListenerForIFrame();
 
       const mutationObserver = new MutationObserver((mutations, observer) => {
@@ -155,7 +101,7 @@ class MutationHelper {
          * 1. 输出页面内容
          * 2. 为页面的所有iframe添加变动监听
          */
-        getContentExtractor(this.window.location.href, this.window.document.title, documentBody).debouncedGetAllText();
+        helper.sendBodyText(document.body);
         this.addListenerForIFrame();
       });
       var options = {
@@ -213,10 +159,38 @@ class MutationHelper {
 
 
 (function() {
-  const connector = chrome.runtime.connect({name: 'content-script'});
-  ContentExtractor.connector = connector;
   new MutationHelper(window).startListenMutation();
   // utils.getLocalIPList().then(v => console.log(v));
 })();
 
+function onWindowVisibilityChange(cb) {
+  // 各种浏览器兼容
+  var hidden, state, visibilityChange;
+  if (typeof document.hidden !== "undefined") {
+    hidden = "hidden";
+    visibilityChange = "visibilitychange";
+    state = "visibilityState";
+  } else if (typeof document.mozHidden !== "undefined") {
+    hidden = "mozHidden";
+    visibilityChange = "mozvisibilitychange";
+    state = "mozVisibilityState";
+  } else if (typeof document.msHidden !== "undefined") {
+    hidden = "msHidden";
+    visibilityChange = "msvisibilitychange";
+    state = "msVisibilityState";
+  } else if (typeof document.webkitHidden !== "undefined") {
+    hidden = "webkitHidden";
+    visibilityChange = "webkitvisibilitychange";
+    state = "webkitVisibilityState";
+  }
+  document.addEventListener(visibilityChange, function(event) {
+    cb(event);
+  }, false);
+}
+onWindowVisibilityChange(evt => {
+ console.log('onWindowVisibilityChange');
+ console.log(evt);
+ // visible or hidden
+ console.log(document.visibilityState);
+})
 

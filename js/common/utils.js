@@ -349,5 +349,61 @@ class Utils {
     }
     return obj;
   }
+
+  // 获取一个节点的文本内容
+  getNodeText(node) {
+    const tagName = node.tagName;
+    if (node.tagName === 'INPUT' || node.tagName === 'TEXTAREA') {
+      return node.value;
+    }
+    if (['SCRIPT', 'STYLE', 'NOSCRIPT'].indexOf(node.tagName) > -1) {
+      return '';
+    }
+    if (['DIV', 'A', 'SPAN', 'B', 'LI', 'TEXT', 'I', 'TH', 'TD'].indexOf(tagName) > -1) {
+      return node.innerText;
+    }
+    return node.textContent;
+  }
+
+  // (通过递归的方式)获取node结点下的所有文本内容
+  getTextAll(node) {
+    if (!node) {
+      return '';
+    }
+    const nodeType = node.nodeType;
+    const tagName = node.tagName;
+
+    if (nodeType == 8) {
+      // 注释comments
+      return '';
+    } else if (['SCRIPT', 'STYLE', 'NOSCRIPT'].indexOf(tagName) > -1) {
+      // 忽略script, style, noscript中的内容
+      return '';
+    } else if('IFRAME' === tagName) {
+      // console.log(node);
+      // console.log(node.contentWindow.document.body.textContent);
+      // console.log(node.contentWindow.location.origin);
+      // 获取iframe中的内容
+      try {
+        // 处理跨域的问题
+        if (window.location.origin === node.contentWindow.location.origin) {
+          return [node.contentWindow.href, '\n'].concat(
+            Array.prototype.slice.call(node.contentWindow.document.body.childNodes).map(this.getTextAll.bind(this))
+          ).join('');
+        }
+      } catch (err) {
+        return '';
+      }
+    } else if (node.childNodes.length > 0) {
+      return Array.prototype.slice.call(node.childNodes).map(this.getTextAll.bind(this)).join('');
+    } else {
+     var content = this.getNodeText(node);
+     if (content) {
+       return content.trim() + ' ';
+     } else {
+       return '';
+     }
+    }
+  }
 }
 
