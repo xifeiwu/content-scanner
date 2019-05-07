@@ -4,6 +4,7 @@ class Helper {
   constructor() {
     this.tabId = null;
     this.tab = null;
+    this.onListen();
   }
   
   onListen() {
