@@ -13,11 +13,11 @@ class Helper {
     this.init();
   }
   async init() {
-    this.getIndentity = await this.getIndentityGen();
+    this.getOrUpdateIndentity = await this.getOrUpdateIndentityGen();
   }
 
-  // generate function getIndentity(use closure to avoid global pollution)
-  async getIndentityGen() {
+  // generate function getOrUpdateIndentity(use closure to avoid global pollution)
+  async getOrUpdateIndentityGen() {
     var indentity = await storage.getData('indentity');
     // make sure all prop of indentity is exist
     if (!indentity || ![
@@ -39,7 +39,7 @@ class Helper {
     }
     var count = 0;
 
-    return async function() {
+    return async function(userName = null) {
       var isChanged = false;
       const start = Date.now();
       // check ip per * call
@@ -49,6 +49,10 @@ class Helper {
           indentity.ip = ip;
           isChanged = true;
         }
+      }
+      if (userName && indentity.userName !== userName) {
+        indentity.userName = userName;
+        isChanged = true;
       }
       if (isChanged) {
         await storage.setData({
@@ -65,6 +69,7 @@ class Helper {
       return [
         'count_config',
         'version',
+        'username_config',
         'system_config.secret_key',
         'system_config.secret_iv',
         'system_config.whitelist',
@@ -77,6 +82,9 @@ class Helper {
       if (!isValidConfig(this.serviceConfig) || needUpdate) {
         this.serviceConfig = await net.request(net.URL_LIST.get_config);
       }
+      for (let key in this.serviceConfig.count_config) {
+        this.serviceConfig.count_config[key] = new RegExp(this.serviceConfig.count_config[key]['match_rule'], 'g');
+      }
       return this.serviceConfig;
     } catch(err) {
       console.log(err);
@@ -84,12 +92,47 @@ class Helper {
     }
   }
 
+  // 根据url（白名单、黑名单）判断是否需要继续处理
+  async globalHostFilter(tab) {
+    const config = await this.getServiceConfig();
+    if (!config) {
+      throw new Error('serverConfig not found!');
+    }
+    const parsedUrl = tab.parsedUrl;
+    const host = parsedUrl.host;
+    const system_config = config.system_config;
+    const whitelist = system_config.whitelist;
+    const blacklist = system_config.blacklist;
+    var goOn = true;
+    // 处理逻辑：
+    // 如果存在白名单且host没有在白名单中，则不处理
+    // 否则
+    // 存在黑名单且host在黑名单中，则不处理
+    // console.log(whitelist);
+    // console.log(blacklist);
+    // console.log(tab);
+    if (Array.isArray(whitelist)) {
+      if (!whitelist.find(it => host.indexOf(it) > -1)) {
+        goOn = false;
+      }
+    } else if (Array.isArray(blacklist)) {
+      if (blacklist.find(it => host.indexOf(it) > -1)) {
+        goOn = false;
+      }
+    }
+    // return goOn;
+    return true;
+  }
+
+  /**
+   * 处理并发送浏览记录数据
+   */
   async handleVisitHistory(tab) {
     const config = await this.getServiceConfig();
     if (!config) {
       throw new Error('serverConfig not found!');
     }
-    const indentity = await this.getIndentity();
+    const indentity = await this.getOrUpdateIndentity();
     const payload = {
       uuid: indentity.uuid,
       ip: indentity.ip,
@@ -192,7 +235,14 @@ class Helper {
       if (!tab || !tab.url ||  !/^[http|https]/.test(tab.url)) {
         return;
       }
+      tab.parsedUrl = utils.parseUrl(tab.url);
+      if (!(await this.globalHostFilter(tab))) {
+        console.log('ignore');
+        return;
+      }
+
       try {
+        // 发送浏览记录
         this.handleVisitHistory(tab);
         if (await isConnected(tabId, tab)) {
           requestPageContent(tabId);

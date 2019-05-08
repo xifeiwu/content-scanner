@@ -431,5 +431,20 @@ class Utils {
         return obj && obj[prop] ? obj[prop] : undefined;
     }, obj)
   }
+
+  parseUrl(url) {
+    var parser = document.createElement('a');
+    parser.href = url;
+    return {
+      protocol: parser.protocol, // => "http:"
+      host: parser.host,     // => "example.com:3000"
+      hostname: parser.hostname, // => "example.com"
+      port: parser.port,     // => "3000"
+      pathname: parser.pathname, // => "/pathname/"
+      hash: parser.hash,     // => "#hash"
+      search: parser.search,   // => "?search=test"
+      origin: parser.origin,   // => "http://example.com:3000"
+    }
+  }
 }
 
