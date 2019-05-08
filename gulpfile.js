@@ -1,9 +1,12 @@
 const path = require('path');
 var gulp = require('gulp');                  // gulp插件
 var concat = require('gulp-concat');
-var uglify = require('gulp-uglify-es').default;         // js代码压缩
 var del = require('del');
 var rename = require('gulp-rename');
+
+const uglifyes = require('uglify-es');
+const composer = require('gulp-uglify/composer');
+const uglify = composer(uglifyes, console);
 
 const SRC_DIR = path.resolve('src/js');
 const DEST_DIR = path.resolve('dist/js');
@@ -26,8 +29,8 @@ gulp.task('background', function() {
     'background/net.js',
     'background.js'
   ].map(file => path.resolve(SRC_DIR, file)))
-  .pipe(uglify())
   .pipe(concat('background.min.js'))
+  .pipe(uglify())
   .pipe(gulp.dest(DEST_DIR));
   return stream
 });
@@ -37,8 +40,8 @@ gulp.task('content', function() {
     'common/utils.js',
     'content.js'
   ].map(file => path.resolve(SRC_DIR, file)))
-  .pipe(uglify())
   .pipe(concat('content.min.js'))
+  .pipe(uglify())
   .pipe(gulp.dest(DEST_DIR));
   return stream
 });
