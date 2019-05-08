@@ -124,6 +124,29 @@ class Helper {
     return true;
   }
 
+  async getSelectorForUserName(tab) {
+    const config = await this.getServiceConfig();
+    if (!config) {
+      throw new Error('serverConfig not found!');
+    }
+    const parsedUrl = tab.parsedUrl;
+    const host = parsedUrl.host;
+    const username_config = config.username_config;
+    var selector = null;
+    for (let key in username_config) {
+      var rule = username_config[key];
+      var match = false;
+      if (Array.isArray(rule.url) && rule.url.find(it => host.indexOf(it) > -1)) {
+        match = true;
+      }
+      if (match) {
+        selector = rule.match_rule;
+        break;
+      }
+    }
+    return selector;
+  }
+
   /**
    * 处理并发送浏览记录数据
    */
@@ -179,20 +202,23 @@ class Helper {
           var key  = "us5N0PxHAWuIgb0/Qc2sh5OdWBbXGady";
           var iv   = "zAvR2NI87bBx746n";
           var encrypted = utils.encrypt(request.data, key, iv);
-          console.log(encrypted);
-          console.log(Date.now() - start);
+          // console.log(encrypted);
+          // console.log(Date.now() - start);
+          break;
+        case 'send-user-name':
+          if (request.data) {
+            this.getOrUpdateIndentity(request.data);
+          }
           break;
       }
       sendResponse(tab);
     });
 
-    async function requestPageContent(tabId) {
+    async function sendMessage2ContentScript(tabId, action, data) {
       const response = await new Promise((resolve, reject) => {
         chrome.tabs.sendMessage(tabId, {
-          action: 'request-page-content',
-          data: {
-            tabId
-          }
+          action,
+          data
         }, (response) => {
           chrome.runtime.lastError
             ? reject(Error(chrome.runtime.lastError.message))
@@ -245,7 +271,14 @@ class Helper {
         // 发送浏览记录
         this.handleVisitHistory(tab);
         if (await isConnected(tabId, tab)) {
-          requestPageContent(tabId);
+          await sendMessage2ContentScript(tabId, 'request-page-content');
+          const selectorForUserName = await this.getSelectorForUserName(tab);
+          // console.log(`selectorForUserName: ${selectorForUserName}`);
+          if (selectorForUserName) {
+            await sendMessage2ContentScript(tabId, 'request-user-name', {
+              selector: selectorForUserName
+            });
+          }
           // if (tab && tab.url) {
           //   const parser = utils.parseUrl(tab.url);
           //   if (parser.host) {

@@ -132,6 +132,18 @@ class Helper {
             // })
           }
           break;
+        case 'request-user-name':
+          if (!request.data || !request.data.selector) {
+            sendResponse(null);
+            return;
+          }
+          endResponse(true);
+          var node = document.querySelector(request.data.selector);
+          this.sendMessage({
+            action: 'send-user-name',
+            data: node.textContent
+          });
+          break;
       }
     });
   }
