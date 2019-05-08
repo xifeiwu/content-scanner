@@ -75,7 +75,7 @@ class Net {
       }, config));
       const resData = response.data;
       if (this.isRequestSuccess(resData)) {
-        return resData.content;
+        return resData;
       } else {
         throw new Error(`response fail: ${path}`);
       }

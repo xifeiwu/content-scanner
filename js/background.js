@@ -10,6 +10,10 @@ class Helper {
   constructor() {
     this.communication();
     this.serviceConfig = {};
+    // 合法的内容
+    this.legalContentMap = {};
+    // 非法的内容
+    this.illegalContentMap = {};
     this.init();
   }
   async init() {
@@ -80,7 +84,7 @@ class Helper {
     }
     try {
       if (!isValidConfig(this.serviceConfig) || needUpdate) {
-        this.serviceConfig = await net.request(net.URL_LIST.get_config);
+        this.serviceConfig = (await net.request(net.URL_LIST.get_config))['content'];
       }
       for (let key in this.serviceConfig.count_config) {
         this.serviceConfig.count_config[key] = new RegExp(this.serviceConfig.count_config[key]['match_rule'], 'g');
@@ -174,7 +178,14 @@ class Helper {
       }
     });
   }
-  async handlePageContent() {
+  
+  // generator of function handlePageContent
+  async handlePageContentGen() {
+
+    this.legalContentMap = {};
+    // 非法的内容
+    this.illegalContentMap = {};
+
 
   }
 
