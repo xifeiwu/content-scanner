@@ -70,11 +70,13 @@ class Helper {
 
   // 每个payload里面都有的属性
   async getCommonPayload() {
+    const config = await this.getServiceConfig();
     const indentity = await this.getOrUpdateIndentity();
     return {
       uuid: indentity.uuid,
       ip: indentity.ip,
-      userName: indentity.userName
+      userName: indentity.userName,
+      configVersion: config.version
     }
   }
 
