@@ -13,6 +13,11 @@ class Net {
       visit_history: {
         path: '/access',
         method: 'post'
+      },
+      // 非法页面信息
+      illegal_record: {
+        path: '/monitor',
+        method: 'post'
       }
     }
     Object.keys(URL_LIST).forEach(key => {
@@ -84,11 +89,6 @@ class Net {
       console.log(`error of request:`);
       console.log(error);
       if (error.isAxiosError) {
-        console.log(error.config);
-        console.log(error.code);
-        console.log(error.request);
-        console.log(error.response);
-        console.log(error.toJSON);
       }
       return null;
     }

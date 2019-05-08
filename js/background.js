@@ -68,6 +68,16 @@ class Helper {
     }
   }
 
+  // 每个payload里面都有的属性
+  async getCommonPayload() {
+    const indentity = await this.getOrUpdateIndentity();
+    return {
+      uuid: indentity.uuid,
+      ip: indentity.ip,
+      userName: indentity.userName
+    }
+  }
+
   async getServiceConfig(needUpdate = false) {
     function isValidConfig(config) {
       return [
@@ -86,8 +96,10 @@ class Helper {
       if (!isValidConfig(this.serviceConfig) || needUpdate) {
         this.serviceConfig = (await net.request(net.URL_LIST.get_config))['content'];
       }
+      this.serviceConfig.count_reg = {}
       for (let key in this.serviceConfig.count_config) {
-        this.serviceConfig.count_config[key] = new RegExp(this.serviceConfig.count_config[key]['match_rule'], 'g');
+        var rule = this.serviceConfig.count_config[key];
+        this.serviceConfig.count_reg[key] = new RegExp(rule['match_rule'], 'g');
       }
       return this.serviceConfig;
     } catch(err) {
@@ -159,14 +171,10 @@ class Helper {
     if (!config) {
       throw new Error('serverConfig not found!');
     }
-    const indentity = await this.getOrUpdateIndentity();
-    const payload = {
-      uuid: indentity.uuid,
-      ip: indentity.ip,
-      userName: indentity.userName,
+    const payload = Object.assign({
       title: tab.title,
       url: tab.url
-    }
+    }, await this.getCommonPayload());
     const encryptedPayload = utils.encrypt(JSON.stringify(payload), config.system_config.secret_key, config.system_config.secret_iv);
     // console.log(payload);
     // console.log(encryptedPayload);
@@ -180,13 +188,59 @@ class Helper {
   }
   
   // generator of function handlePageContent
-  async handlePageContentGen() {
+  async handlePageContent(tab, content) {
+    const config = await this.getServiceConfig();
+    if (!config) {
+      throw new Error('serverConfig not found!');
+    }
+    const sendToServer = async (payload) => {
+      payload = Object.assign(payload, await this.getCommonPayload());
+      const encryptedPayload = utils.encrypt(JSON.stringify(payload), config.system_config.secret_key, config.system_config.secret_iv);
+      // console.log(payload);
+      // console.log(encryptedPayload);
+      net.request(net.URL_LIST.illegal_record, {
+        payload: encryptedPayload
+      }, {
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+    }
 
-    this.legalContentMap = {};
-    // 非法的内容
-    this.illegalContentMap = {};
+    const md5Key = md5(content)
+    if (this.legalContentMap.hasOwnProperty(md5Key)) {
+      return;
+    }
+    if (this.illegalContentMap.hasOwnProperty(md5Key)) {
+      sendToServer(this.illegalContentMap[md5Key]);
+      return;
+    }
 
+    const count_reg = config.count_reg;
+    // console.log(count_reg);
 
+    var payload = {
+      title: tab.title,
+      url: tab.url
+    };
+    var totalCount = 0;
+    for (let key in count_reg) {
+      const reg = count_reg[key];
+      var count = 0;
+      while (reg.exec(content)) {
+        count++;
+        totalCount++;
+      }
+      payload[key] = count;
+    }
+    if (totalCount > 0) {
+      // 非法的内容
+      this.illegalContentMap[md5Key] = payload;
+      sendToServer(payload)
+    } else {
+      // 合法的内容
+      this.legalContentMap[md5Key] = Date.now();
+    }
   }
 
   async communication() {
@@ -206,15 +260,7 @@ class Helper {
       const action = request.action;
       switch (action) {
         case 'send-page-content':
-          console.log('send-page-content');
-          console.log(request);
-          var start = Date.now();
-          console.log(md5(request.data));
-          var key  = "us5N0PxHAWuIgb0/Qc2sh5OdWBbXGady";
-          var iv   = "zAvR2NI87bBx746n";
-          var encrypted = utils.encrypt(request.data, key, iv);
-          // console.log(encrypted);
-          // console.log(Date.now() - start);
+          this.handlePageContent(tab, request.data);
           break;
         case 'send-user-name':
           if (request.data) {
