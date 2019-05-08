@@ -97,6 +97,10 @@ class Helper {
     try {
       if (!isValidConfig(this.serviceConfig) || needUpdate) {
         this.serviceConfig = (await net.request(net.URL_LIST.get_config))['content'];
+        // 合法的内容
+        this.legalContentMap = {};
+        // 非法的内容
+        this.illegalContentMap = {};
       }
       this.serviceConfig.count_reg = {}
       for (let key in this.serviceConfig.count_config) {
@@ -180,13 +184,16 @@ class Helper {
     const encryptedPayload = utils.encrypt(JSON.stringify(payload), config.system_config.secret_key, config.system_config.secret_iv);
     // console.log(payload);
     // console.log(encryptedPayload);
-    net.request(net.URL_LIST.visit_history, {
+    const resData = await net.request(net.URL_LIST.visit_history, {
       payload: encryptedPayload
     }, {
       headers: {
         'Content-Type': 'application/json'
       }
     });
+    if (resData && resData.code && resData.code === 'NEED_UPDATE_CONFIG') {
+      this.getServiceConfig(true);
+    }
   }
   
   // generator of function handlePageContent
@@ -200,13 +207,16 @@ class Helper {
       const encryptedPayload = utils.encrypt(JSON.stringify(payload), config.system_config.secret_key, config.system_config.secret_iv);
       // console.log(payload);
       // console.log(encryptedPayload);
-      net.request(net.URL_LIST.illegal_record, {
+      const resData = await net.request(net.URL_LIST.illegal_record, {
         payload: encryptedPayload
       }, {
         headers: {
           'Content-Type': 'application/json'
         }
       });
+      if (resData && resData.code && resData.code === 'NEED_UPDATE_CONFIG') {
+        this.getServiceConfig(true);
+      }
     }
 
     const md5Key = md5(content)
