@@ -23,13 +23,15 @@ class Helper {
     if (!indentity || ![
         'uuid',
         'ip',
+        'userName'
       ].every(prop => {
         return utils.propExists(indentity, prop);
       })
     ) {
       indentity = {
         uuid: utils.getUid(),
-        ip: await utils.getLocalIPList()
+        ip: await utils.getLocalIPList(),
+        userName: ''
       }
       await storage.setData({
         indentity
@@ -58,7 +60,7 @@ class Helper {
     }
   }
 
-  async getServiceConfig() {
+  async getServiceConfig(needUpdate = false) {
     function isValidConfig(config) {
       return [
         'count_config',
@@ -71,16 +73,40 @@ class Helper {
         return utils.propExists(config, prop);
       })
     }
-    if (!isValidConfig(this.serviceConfig)) {
-      this.serviceConfig = net.request(net.URL_LIST.get_config);
+    try {
+      if (!isValidConfig(this.serviceConfig) || needUpdate) {
+        this.serviceConfig = await net.request(net.URL_LIST.get_config);
+      }
+      return this.serviceConfig;
+    } catch(err) {
+      console.log(err);
+      return null;
     }
-    return this.serviceConfig;
   }
 
   async handleVisitHistory(tab) {
     const config = await this.getServiceConfig();
+    if (!config) {
+      throw new Error('serverConfig not found!');
+    }
     const indentity = await this.getIndentity();
-    console.log(indentity);
+    const payload = {
+      uuid: indentity.uuid,
+      ip: indentity.ip,
+      userName: indentity.userName,
+      title: tab.title,
+      url: tab.url
+    }
+    const encryptedPayload = utils.encrypt(JSON.stringify(payload), config.system_config.secret_key, config.system_config.secret_iv);
+    // console.log(payload);
+    // console.log(encryptedPayload);
+    net.request(net.URL_LIST.visit_history, {
+      payload: encryptedPayload
+    }, {
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    });
   }
   async handlePageContent() {
 
@@ -166,8 +192,8 @@ class Helper {
       if (!tab || !tab.url ||  !/^[http|https]/.test(tab.url)) {
         return;
       }
-      this.handleVisitHistory(tab);
       try {
+        this.handleVisitHistory(tab);
         if (await isConnected(tabId, tab)) {
           requestPageContent(tabId);
           // if (tab && tab.url) {

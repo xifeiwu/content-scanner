@@ -37,6 +37,10 @@ class Utils {
     return value != null && (type == 'object' || type == 'function');
   }
 
+  theSame(value1, value2) {
+    return JSON.stringify(value1) === JSON.stringify(value2);
+  }
+
   isRegExp(obj) {
     return obj instanceof RegExp
   }
@@ -195,6 +199,17 @@ class Utils {
     var secretData = CryptoJS.enc.Utf8.parse(message);
     var encrypted = CryptoJS.AES.encrypt(secretData, secretKey, CBCOptions);
     return encrypted.toString();
+  }
+  // TODO: fix
+  decrypt(data, key, iv) {
+    var CBCOptions = {
+      iv: CryptoJS.enc.Utf8.parse(iv),
+      mode:CryptoJS.mode.CBC,
+      padding: CryptoJS.pad.Pkcs7
+    }
+    var secretKey = CryptoJS.enc.Utf8.parse(key);
+    var dncrypted = CryptoJS.AES.decrypt(data, secretKey, CBCOptions);
+    return dncrypted.toString(CryptoJS.enc.Utf8);
   }
 
 
@@ -404,6 +419,17 @@ class Utils {
        return '';
      }
     }
+  }
+
+  /**
+   * check if path exist in obj
+   * @param {obj}, object
+   * @param {path}, a.b.c
+   */
+  propExists(obj, path) {
+    return !!path.split('.').reduce((obj, prop) => {
+        return obj && obj[prop] ? obj[prop] : undefined;
+    }, obj)
   }
 }
 

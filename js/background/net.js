@@ -2,7 +2,23 @@
 class Net {
   constructor() {
     // this.host = 'http://172.16.124.117:3000';
-    this.host = 'http://172.16.125.138:7777';
+    this.host = 'http://172.16.125.79:7777';
+    const URL_LIST = {
+      // 服务端配置
+      get_config: {
+        path: '/getconfig',
+        method: 'post'
+      },
+      // 浏览记录
+      visit_history: {
+        path: '/access',
+        method: 'post'
+      }
+    }
+    Object.keys(URL_LIST).forEach(key => {
+      URL_LIST[key]['path'] = this.host + URL_LIST[key]['path']
+    });
+    this.URL_LIST = URL_LIST;
   }
 
   /**
@@ -48,25 +64,25 @@ class Net {
     }
   }
 
-  isRequestSuccess() {
-    return true;
+  isRequestSuccess(resData) {
+    return resData.success;
   }
 
-  async request({path, method}, options = {}) {
+  async request({path, method}, options = {}, config = {}) {
     try {
-      const response = await this.getResponse({path, method}, options, {
+      const response = await this.getResponse({path, method}, options, Object.assign({
         timeout: 15000,
-      });
+      }, config));
       const resData = response.data;
       if (this.isRequestSuccess(resData)) {
-        return resData;
+        return resData.content;
       } else {
+        throw new Error(`response fail: ${path}`);
       }
     } catch (error) {
       // 捕获网络请求的错误
       console.log(`error of request:`);
       console.log(error);
-      console.log(error.isAxiosError);
       if (error.isAxiosError) {
         console.log(error.config);
         console.log(error.code);
