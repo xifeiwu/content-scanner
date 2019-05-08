@@ -1,0 +1,18 @@
+{
+  "name": "content-scanner",
+  "version": "1.0.0",
+  "description": "benew mobile project",
+  "scripts": {
+    "build": "gulp build"
+  },
+  "devDependencies": {
+    "del": "^1.1.1",
+    "gulp": "^3.9.0",
+    "gulp-concat": "^2.6.1",
+    "gulp-rename": "^1.2.2",
+    "gulp-uglify": "^2.0.0",
+    "gulp-uglify-es": "^1.0.4"
+  },
+  "dependencies": {
+  }
+}
