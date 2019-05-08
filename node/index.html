@@ -1,0 +1,40 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN"
+    "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <meta name="viewport" content="initial-scale=1, width=device-width, maximum-scale=1, user-scalable=no" />
+  <title>HTML Model</title>
+  <style type="text/css">
+  html, body {
+    margin: 0px;
+    padding: 0px;
+  }
+  </style>
+  <script>
+  window.addEventListener('load', function() {
+    const container = document.querySelector('.container');
+    const showHide = container.querySelector('.show-hide');
+    
+    var count = 0;
+    const actionTag = setInterval(() => {
+      if (count % 2 === 0) {
+        showHide.innerHTML = `<span style="color: red">手机号：15712878803</span>`
+      } else {
+        showHide.innerHTML = `<span>没有手机号</span>`;
+      }
+      count++;
+    }, 2000);
+  });
+  </script>
+</head>
+
+<body>
+  <div class="container">
+    <div>Test</div>
+    <div class="show-hide"></div>
+  </div>
+</body>
+
+</html>
