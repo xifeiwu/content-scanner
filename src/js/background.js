@@ -142,6 +142,7 @@ class Helper {
         goOn = false;
       }
     }
+    // TODO: should return goOn
     // return goOn;
     return true;
   }

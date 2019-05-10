@@ -175,9 +175,14 @@ class Helper {
 
   watchPageMutation() {
     const mutationWatcher = new MutationWatcher(window, () => {
-        this.sendBodyText(document.body);
+      this.sendBodyText(document.body);
     });
     mutationWatcher.startListenMutation();
+    // do not watch mutation after 20s
+    setTimeout(() => {
+      this.firstGlance = false;
+      mutationWatcher.stopListenMutation();
+    }, 20 * 1000);
     function onWindowVisibilityChange(cb) {
       // 各种浏览器兼容
       var hidden, state, visibilityChange;
