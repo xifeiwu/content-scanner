@@ -143,8 +143,8 @@ class Helper {
       }
     }
     // TODO: should return goOn
-    // return goOn;
-    return true;
+    return goOn;
+    // return true;
   }
 
   async getSelectorForUserName(tab) {

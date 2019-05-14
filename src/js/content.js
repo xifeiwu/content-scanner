@@ -178,7 +178,7 @@ class Helper {
       this.sendBodyText(document.body);
     });
     mutationWatcher.startListenMutation();
-    // do not watch mutation after 20s
+    // stop watching mutation after 20s
     setTimeout(() => {
       this.firstGlance = false;
       mutationWatcher.stopListenMutation();
