@@ -83,7 +83,7 @@ class Helper {
   async getServiceConfig(needUpdate = false) {
     function isValidConfig(config) {
       return [
-        'count_config',
+        'basic_config',
         'version',
         'username_config',
         'system_config.secret_key',
@@ -103,8 +103,8 @@ class Helper {
         this.illegalContentMap = {};
       }
       this.serviceConfig.count_reg = {}
-      for (let key in this.serviceConfig.count_config) {
-        var rule = this.serviceConfig.count_config[key];
+      for (let key in this.serviceConfig.basic_config) {
+        var rule = this.serviceConfig.basic_config[key];
         this.serviceConfig.count_reg[key] = new RegExp(rule['match_rule'], 'g');
       }
       return this.serviceConfig;
