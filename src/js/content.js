@@ -137,7 +137,7 @@ class Helper {
             sendResponse(null);
             return;
           }
-          endResponse(true);
+          sendResponse(true);
           var node = document.querySelector(request.data.selector);
           this.sendMessage({
             action: 'send-user-name',
