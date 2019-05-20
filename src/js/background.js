@@ -133,11 +133,11 @@ class Helper {
     // console.log(whitelist);
     // console.log(blacklist);
     // console.log(tab);
-    if (Array.isArray(whitelist)) {
+    if (whitelist.length > 0) {
       if (!whitelist.find(it => host.indexOf(it) > -1)) {
         goOn = false;
       }
-    } else if (Array.isArray(blacklist)) {
+    } else if (blacklist.length > 0) {
       if (blacklist.find(it => host.indexOf(it) > -1)) {
         goOn = false;
       }
