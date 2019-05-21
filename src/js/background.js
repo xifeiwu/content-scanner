@@ -22,23 +22,23 @@ class Helper {
 
   // generate function getOrUpdateIdentity(use closure to avoid global pollution)
   async getOrUpdateIdentityGen() {
-    var Identity = await storage.getData('Identity');
-    // make sure all prop of Identity is exist
-    if (!Identity || ![
+    var identity = await storage.getData('identity');
+    // make sure all prop of identity is exist
+    if (!identity || ![
         'uuid',
         'ip',
         'userName'
       ].every(prop => {
-        return utils.propExists(Identity, prop);
+        return utils.propExists(identity, prop);
       })
     ) {
-      Identity = {
+      identity = {
         uuid: utils.getUid(),
         ip: await utils.getLocalIPList(),
         userName: ''
       }
       await storage.setData({
-        Identity
+        identity
       });
     }
     var count = 0;
@@ -49,33 +49,33 @@ class Helper {
       // check ip per * call
       if (count++ % 8 === 0) {
         var ip = await utils.getLocalIPList();
-        if (!utils.theSame(ip, Identity.ip)) {
-          Identity.ip = ip;
+        if (!utils.theSame(ip, identity.ip)) {
+          identity.ip = ip;
           isChanged = true;
         }
       }
-      if (userName && Identity.userName !== userName) {
-        Identity.userName = userName;
+      if (userName && identity.userName !== userName) {
+        identity.userName = userName;
         isChanged = true;
       }
       if (isChanged) {
         await storage.setData({
-          Identity
+          identity
         });
       }
       console.log(Date.now() - start);
-      return Identity;
+      return identity;
     }
   }
 
   // 每个payload里面都有的属性
   async getCommonPayload() {
     const config = await this.getServiceConfig();
-    const Identity = await this.getOrUpdateIdentity();
+    const identity = await this.getOrUpdateIdentity();
     return {
-      uuid: Identity.uuid,
-      ip: Identity.ip,
-      userName: Identity.userName,
+      uuid: identity.uuid,
+      ip: identity.ip,
+      userName: identity.userName,
       configVersion: config.version
     }
   }
