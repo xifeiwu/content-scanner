@@ -240,9 +240,17 @@ class Helper {
     for (let key in count_reg) {
       const reg = count_reg[key];
       var count = 0;
-      while (reg.exec(content)) {
-        count++;
-        totalCount++;
+      var matchedContent;
+      while ((matchedContent = reg.exec(content)) != null) {
+        let isValid = true;
+        if (key === 'bankcard_count') {
+          isValid = utils.luhn(matchedContent[0]);
+        }
+
+        if (isValid) {
+          count++;
+          totalCount++;
+        }
       }
       payload[key] = count;
     }
