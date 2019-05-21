@@ -17,28 +17,28 @@ class Helper {
     this.init();
   }
   async init() {
-    this.getOrUpdateIndentity = await this.getOrUpdateIndentityGen();
+    this.getOrUpdateIdentity = await this.getOrUpdateIdentityGen();
   }
 
-  // generate function getOrUpdateIndentity(use closure to avoid global pollution)
-  async getOrUpdateIndentityGen() {
-    var indentity = await storage.getData('indentity');
-    // make sure all prop of indentity is exist
-    if (!indentity || ![
+  // generate function getOrUpdateIdentity(use closure to avoid global pollution)
+  async getOrUpdateIdentityGen() {
+    var Identity = await storage.getData('Identity');
+    // make sure all prop of Identity is exist
+    if (!Identity || ![
         'uuid',
         'ip',
         'userName'
       ].every(prop => {
-        return utils.propExists(indentity, prop);
+        return utils.propExists(Identity, prop);
       })
     ) {
-      indentity = {
+      Identity = {
         uuid: utils.getUid(),
         ip: await utils.getLocalIPList(),
         userName: ''
       }
       await storage.setData({
-        indentity
+        Identity
       });
     }
     var count = 0;
@@ -49,33 +49,33 @@ class Helper {
       // check ip per * call
       if (count++ % 8 === 0) {
         var ip = await utils.getLocalIPList();
-        if (!utils.theSame(ip, indentity.ip)) {
-          indentity.ip = ip;
+        if (!utils.theSame(ip, Identity.ip)) {
+          Identity.ip = ip;
           isChanged = true;
         }
       }
-      if (userName && indentity.userName !== userName) {
-        indentity.userName = userName;
+      if (userName && Identity.userName !== userName) {
+        Identity.userName = userName;
         isChanged = true;
       }
       if (isChanged) {
         await storage.setData({
-          indentity
+          Identity
         });
       }
       console.log(Date.now() - start);
-      return indentity;
+      return Identity;
     }
   }
 
   // 每个payload里面都有的属性
   async getCommonPayload() {
     const config = await this.getServiceConfig();
-    const indentity = await this.getOrUpdateIndentity();
+    const Identity = await this.getOrUpdateIdentity();
     return {
-      uuid: indentity.uuid,
-      ip: indentity.ip,
-      userName: indentity.userName,
+      uuid: Identity.uuid,
+      ip: Identity.ip,
+      userName: Identity.userName,
       configVersion: config.version
     }
   }
@@ -290,7 +290,7 @@ class Helper {
           break;
         case 'send-user-name':
           if (request.data) {
-            this.getOrUpdateIndentity(request.data);
+            this.getOrUpdateIdentity(request.data);
           }
           break;
       }
