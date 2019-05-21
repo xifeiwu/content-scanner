@@ -244,8 +244,13 @@ class Helper {
       while ((matchedContent = reg.exec(content)) != null) {
         let isValid = true;
         if (key === 'bankcard_count') {
-          isValid = utils.luhn(matchedContent[0]);
+          isValid = utils.isValidBankcard(matchedContent[1]);
+        } else if (key === 'idcard_count') {
+          isValid = utils.isValidIdcard(matchedContent[1]);
         }
+        // console.log(matchedContent[1]);
+        // console.log(isValid);
+        // console.log(key);
 
         if (isValid) {
           count++;

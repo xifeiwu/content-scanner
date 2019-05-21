@@ -185,23 +185,52 @@ class Utils {
     return dncrypted.toString(CryptoJS.enc.Utf8);
   }
 
-
-  luhn(cardNum) {
+  // 判断银行卡号校验位是否正确（luhn算法）
+  isValidBankcard(cardNum) {
     if (!cardNum) {
       return false;
     }
-    let len = cardNum.length;
-    let carNumArr = Array.from(cardNum.slice(0, len));
-    let tem = 0;
-    for (let i = len-2; i >= 0; i -= 2) {
+
+    var len = cardNum.length;
+    var cardNumArr = Array.from(cardNum.slice(0, len));
+    var tem = 0;
+    for (let i = len - 2; i >= 0; i -= 2) {
       tem = parseInt(cardNum[i]) * 2;
-      carNumArr[i] = Math.floor(tem / 10) + tem % 10;
+      cardNumArr[i] = Math.floor(tem / 10) + tem % 10;
     }
-    let result = 0;
-    carNumArr.forEach(val => {
+
+    var result = 0;
+    cardNumArr.forEach(val => {
       result += parseInt(val);
     })
     return result % 10 == 0;
+  }
+
+  // 判断身份证号校验位是否正确（GB 11643-1999：∑(ai×Wi)(mod 11)）
+  isValidIdcard(cardNum) {
+    if (!cardNum) {
+      return false;
+    }
+
+    var cardNumArr = cardNum.split('');
+    //加权因子
+    var factor = [7, 9, 10, 5, 8, 4, 2, 1, 6, 3, 7, 9, 10, 5, 8, 4, 2];
+    //校验位
+    var parity = [1, 0, 'X', 9, 8, 7, 6, 5, 4, 3, 2];
+    var sum = 0;
+    var ai = 0;
+    var wi = 0;
+    for (var i = 0; i < 17; i++) {
+        ai = parseInt(cardNumArr[i]);
+        wi = factor[i];
+        sum += ai * wi;
+    }
+
+    if (parity[sum % 11] == cardNumArr[17].toUpperCase()) {
+      return true;
+    } else {
+      return false;
+    }
   }
 
   /*
@@ -257,7 +286,7 @@ class Utils {
   debounce(fn, delay, immediate) {
     return this.throttle(fn, delay, immediate, true);
   }
-  
+
   objectToQueryString (obj) {
     return Object.keys(obj).reduce(function (str, key, i) {
       var delimiter, val;
