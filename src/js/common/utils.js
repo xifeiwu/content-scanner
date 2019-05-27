@@ -409,7 +409,7 @@ class Utils {
    */
   propExists(obj, path) {
     return !!path.split('.').reduce((obj, prop) => {
-        return obj && obj[prop] ? obj[prop] : undefined;
+      return obj && obj.hasOwnProperty(prop) ? true : false;
     }, obj)
   }
 
