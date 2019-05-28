@@ -346,6 +346,18 @@ class Utils {
     return obj;
   }
 
+  // check if visible, simple version
+  isVisible2(elem) {
+    if (!(elem instanceof Element)) {
+      return true;
+    }
+    const style = getComputedStyle(elem);
+    if (style.display === 'none') return false;
+    if (style.visibility !== 'visible') return false;
+    if (style.opacity < 0.1) return false;
+    return true;
+  }
+
   // 获取一个节点的文本内容
   getNodeText(node) {
     const tagName = node.tagName;
@@ -368,6 +380,10 @@ class Utils {
     }
     const nodeType = node.nodeType;
     const tagName = node.tagName;
+
+    if (!this.isVisible2(node)) {
+      return '';
+    }
 
     if (nodeType == 8) {
       // 注释comments
