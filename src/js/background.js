@@ -198,7 +198,7 @@ class Helper {
   }
   
   // generator of function handlePageContent
-  async handlePageContent(tab, content) {
+  async handlePageContent(tab, {content = '', iframes = []}) {
     const config = await this.getServiceConfig();
     if (!config) {
       throw new Error('serverConfig not found!');
@@ -234,7 +234,8 @@ class Helper {
 
     var payload = {
       title: tab.title,
-      url: tab.url
+      url: tab.url,
+      iframes
     };
     var totalCount = 0;
     for (let key in count_reg) {

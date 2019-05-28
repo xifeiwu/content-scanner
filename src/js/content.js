@@ -167,10 +167,24 @@ class Helper {
 
   sendBodyText(node) {
     const bodyText = utils.getTextAll(node);
+    const iframes = node.querySelectorAll('iframe').filter(it => {
+      try {
+        return  (window.location.origin === it.contentWindow.location.origin) && utils.isVisible2(it);
+      } catch(err) {
+        return false
+      }
+    }).map(it => {
+      return {
+        url: it.contentWindow.location.href
+      }
+    })
     // console.log(bodyText);
     this.sendMessage({
       action: 'send-page-content',
-      data: bodyText
+      data: {
+        content: bodyText,
+        iframes
+      }
     });
   }
 
