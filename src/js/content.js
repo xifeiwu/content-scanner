@@ -93,6 +93,7 @@ class Helper {
     this.tabId = null;
     this.tab = null;
     this.onListen();
+    // firstGlance: send message from content to background; ignore message request from background
     this.firstGlance = true;
     this.watchPageMutation();
   }
@@ -178,11 +179,11 @@ class Helper {
       this.sendBodyText(document.body);
     });
     mutationWatcher.startListenMutation();
-    // stop watching mutation after 20s
-    setTimeout(() => {
-      this.firstGlance = false;
-      mutationWatcher.stopListenMutation();
-    }, 20 * 1000);
+    // stop watching mutation after 20s, as mutationObserver is resource-comsuming
+    // setTimeout(() => {
+    //   this.firstGlance = false;
+    //   mutationWatcher.stopListenMutation();
+    // }, 20 * 1000);
     function onWindowVisibilityChange(cb) {
       // 各种浏览器兼容
       var hidden, state, visibilityChange;
@@ -212,6 +213,8 @@ class Helper {
       if ('hidden' === document.visibilityState) {
         this.firstGlance = false;
         mutationWatcher.stopListenMutation();
+      } else if ('visible' === document.visibilityState) {
+        mutationWatcher.startListenMutation();
       }
     })
   }
