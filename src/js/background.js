@@ -307,6 +307,9 @@ class Helper {
             this.getOrUpdateIdentity(request.data);
           }
           break;
+        case 'send-visit-history':
+          this.handleVisitHistory(request.data);
+          break;
       }
       sendResponse(tab);
     });
@@ -365,10 +368,10 @@ class Helper {
       }
 
       try {
-        // 发送浏览记录
-        this.handleVisitHistory(tab);
+        // NOTICE: visit history is send by content
+        // this.handleVisitHistory(tab);
         if (await isConnected(tabId, tab)) {
-          // TODO: no need to request, page-conent will send by content
+          // NOTICE: page-conent is send by content(no need to request)
           // await sendMessage2ContentScript(tabId, 'request-page-content');
           const selectorForUserName = await this.getSelectorForUserName(tab);
           // console.log(`selectorForUserName: ${selectorForUserName}`);

@@ -352,21 +352,41 @@ class Helper {
   }
 
   watchPageEvent() {
-    const eventWatcher = new EventWatcher(window, (type, node, data) => {
-      console.log(`${type}: `);
+    const eventWatcher = new EventWatcher(window, (action, node, data) => {
+      // type list: hidden, visible, loaded, mutation, iframe-added, content-change
+      console.log(`${action}: `);
       console.log(node.url);
       console.log(node.title);
       console.log(node.document);
       if (data) {
         console.log(data);
       }
-    // this.sendMessage({
-    //   action: 'send-page-content',
-    //   data: {
-    //     content: bodyText,
-    //     iframes
-    //   }
-    // });
+      switch (action) {
+        case 'visible':
+        case 'iframe-added':
+            this.sendMessage({
+            action: 'send-visit-history',
+            data: {
+              title: node.title,
+              url: node.url,
+              container: node.iframe ? window.location.href : ''
+            }
+          });
+          break;
+        case 'content-change':
+          this.sendMessage({
+            action: 'send-page-content',
+            data: {
+              content: data,
+              title: node.title,
+              url: node.url,
+              container: node.iframe ? window.location.href : ''
+            }
+          });
+          break
+      }
+
+
     }).startListenEvents();
   }
 }
