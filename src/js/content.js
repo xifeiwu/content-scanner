@@ -279,6 +279,8 @@ class EventWatcher extends Utils {
   }
 }
 
+const DEBUG = false;
+
 class Helper {
   constructor() {
     this.tabId = null;
@@ -354,17 +356,19 @@ class Helper {
   watchPageEvent() {
     const eventWatcher = new EventWatcher(window, (action, node, data) => {
       // type list: hidden, visible, loaded, mutation, iframe-added, content-change
-      console.log(`${action}: `);
-      console.log(node.url);
-      console.log(node.title);
-      console.log(node.document);
-      if (data) {
-        console.log(data);
+      function showData() {
+        console.log(`${action}: `);
+        console.log(node.url);
+        console.log(node.title);
+        console.log(node.document);
+        if (data) {
+          console.log(data);
+        }
       }
       switch (action) {
         case 'visible':
         case 'iframe-added':
-            this.sendMessage({
+          this.sendMessage({
             action: 'send-visit-history',
             data: {
               title: node.title,
@@ -372,6 +376,9 @@ class Helper {
               container: node.iframe ? window.location.href : ''
             }
           });
+          if (DEBUG) {
+            showData();
+          }
           break;
         case 'content-change':
           this.sendMessage({
@@ -383,6 +390,9 @@ class Helper {
               container: node.iframe ? window.location.href : ''
             }
           });
+          if (DEBUG) {
+            showData();
+          }
           break
       }
 

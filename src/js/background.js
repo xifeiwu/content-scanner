@@ -6,6 +6,8 @@ const net = new Net();
 const tabs = new Tabs();
 const storage = new Storage();
 
+const DEBUG = false;
+
 class Helper {
   constructor() {
     this.communication();
@@ -94,17 +96,19 @@ class Helper {
         return utils.propExists(config, prop);
       })
     }
-    // return {
-    //   basic_config: '',
-    //   version: '',
-    //   username_config: {},
-    //   system_config: {
-    //     secret_key: '123',
-    //     secret_iv: 'abc',
-    //     whitelist: '',
-    //     blacklist: '',
-    //   }
-    // };
+    if (DEBUG) {
+      return {
+        basic_config: '',
+        version: '',
+        username_config: {},
+        system_config: {
+          secret_key: '123',
+          secret_iv: 'abc',
+          whitelist: '',
+          blacklist: '',
+        }
+      };
+    }
     try {
       if (!isValidConfig(this.serviceConfig) || needUpdate) {
         this.serviceConfig = (await net.request(net.URL_LIST.get_config))['content'];
@@ -195,9 +199,12 @@ class Helper {
       container: ''
     }, await this.getCommonPayload());
     const encryptedPayload = utils.encrypt(JSON.stringify(payload), config.system_config.secret_key, config.system_config.secret_iv);
-    // console.log(payload);
-    // console.log(encryptedPayload);
-    // return;
+
+    if (DEBUG) {
+      console.log(payload);
+      console.log(encryptedPayload);
+      return;
+    }
     const resData = await net.request(net.URL_LIST.visit_history, {
       payload: encryptedPayload
     }, {
@@ -215,6 +222,12 @@ class Helper {
     const config = await this.getServiceConfig();
     if (!config) {
       throw new Error('serverConfig not found!');
+    }
+    if (DEBUG) {
+      console.log({
+        content, title, url, container
+      });
+      return;
     }
     const sendToServer = async (payload) => {
       payload = Object.assign(payload, await this.getCommonPayload());
