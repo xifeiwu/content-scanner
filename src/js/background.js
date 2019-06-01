@@ -63,7 +63,7 @@ class Helper {
           identity
         });
       }
-      console.log(Date.now() - start);
+      // console.log(Date.now() - start);
       return identity;
     }
   }
@@ -94,6 +94,17 @@ class Helper {
         return utils.propExists(config, prop);
       })
     }
+    // return {
+    //   basic_config: '',
+    //   version: '',
+    //   username_config: {},
+    //   system_config: {
+    //     secret_key: '123',
+    //     secret_iv: 'abc',
+    //     whitelist: '',
+    //     blacklist: '',
+    //   }
+    // };
     try {
       if (!isValidConfig(this.serviceConfig) || needUpdate) {
         this.serviceConfig = (await net.request(net.URL_LIST.get_config))['content'];
@@ -173,18 +184,20 @@ class Helper {
   /**
    * 处理并发送浏览记录数据
    */
-  async handleVisitHistory(tab) {
+  async handleVisitHistory({title = '', url = '', container = ''}) {
     const config = await this.getServiceConfig();
     if (!config) {
       throw new Error('serverConfig not found!');
     }
     const payload = Object.assign({
-      title: tab.title,
-      url: tab.url
+      title: title,
+      url: url,
+      container: ''
     }, await this.getCommonPayload());
     const encryptedPayload = utils.encrypt(JSON.stringify(payload), config.system_config.secret_key, config.system_config.secret_iv);
     // console.log(payload);
     // console.log(encryptedPayload);
+    // return;
     const resData = await net.request(net.URL_LIST.visit_history, {
       payload: encryptedPayload
     }, {
@@ -356,7 +369,7 @@ class Helper {
         this.handleVisitHistory(tab);
         if (await isConnected(tabId, tab)) {
           // TODO: no need to request, page-conent will send by content
-          await sendMessage2ContentScript(tabId, 'request-page-content');
+          // await sendMessage2ContentScript(tabId, 'request-page-content');
           const selectorForUserName = await this.getSelectorForUserName(tab);
           // console.log(`selectorForUserName: ${selectorForUserName}`);
           if (selectorForUserName) {

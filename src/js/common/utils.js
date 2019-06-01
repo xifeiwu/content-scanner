@@ -7,7 +7,7 @@ class Utils {
       ipWithMask: /^([0-2]*[0-9]{1,2})\.([0-2]*[0-9]{1,2})\.([0-2]*[0-9]{1,2})\.([0-2]*[0-9]{1,2})(\/[0-9]+)?$/,
       number: /^[0-9]+$/
     }
-    this.md5 = getMd5();
+    this.md5 = this.getMd5();
   }
   getReg(type) {
     let result = null;
