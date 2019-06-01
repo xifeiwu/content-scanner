@@ -3,39 +3,159 @@ const utils = new Utils();
 /**
  * 获取页面内容，在页面发生任何变化时获取页面内容
  */
-class MutationWatcher {
+class EventWatcher extends Utils {
   /** 
-   * @param win, window对象 
+   * @param win, window对象或iframe结点 
+   * @param cb, function. type: hidden, visible, loaded, mutation, iframe-added, content-change
+   * function used in Utils: getUid, parseUrl, md5, getTextAll
    */
-  constructor(win, cb) {
-    this.window = win;
+  constructor(winOrIframe, cb) {
+    super();
+    if (winOrIframe.tagName && winOrIframe.tagName === 'IFRAME') {
+      this.iframe = winOrIframe;
+      this.window = winOrIframe.contentWindow;
+    } else {
+      this.iframe = null;
+      this.window = winOrIframe;
+    }
     this.cb = cb ? cb : () => {};
-    // this.iframeList = [];
-    this.iframeMutationWatcherList = [];
+    this.iframeMap = {};
     this.mutationObserver = null;
+    this.visibilityChangeCb = null;
+    this.TAG_NAME = 'uuid';
+    this.startListenVisibilityChange();
+    // store content which has send
+    this.listOfContentMd5 = [];
   }
 
-  // 开始监听页面变化
-  startListenMutation() {
+  get title() {
+    return this.document.title;
+  }
+  get url() {
+    var url = null;
+    try {
+      url = this.window.location.href;
+    } catch (err) {
+      url = this.iframe && this.iframe.src
+    }
+    return url;
+  }
+  get document() {
+    return this.window.document;
+  }
+
+  // sendBodyContent on event loaded, mutation
+  sendBodyContent() {
+    const textContent = this.getTextAll(this.document.body);
+    const md5 = this.md5(textContent);
+    if (this.listOfContentMd5.indexOf(md5) === -1) {
+      this.listOfContentMd5.push(md5);
+      this.cb('content-change', this, textContent);
+    }
+  }
+  /**
+   * 页面可视状态监听
+   * 隐藏状态下，关闭所有监听。可视时，打开。
+   */
+  startListenVisibilityChange() {
+    if (this.visibilityChangeCb) {
+      this.stopListenVisibilityChange();
+    }
+    const listener = (evt) => {
+      // visible or hidden
+      if (this.visibilityKey.hidden === document.visibilityState) {
+        this.cb('hidden', this);
+        this.listOfContentMd5 = [];
+        this.stopListenEvents();
+      } else if ('visible' === document.visibilityState) {
+        this.cb('visible', this);
+        this.startListenEvents();
+      }
+    }
+    document.addEventListener(this.visibilityKey.visibilityChange, listener, false);
+    this.visibilityChangeCb = listener;
+  }
+  stopListenVisibilityChange() {
+    if (!this.visibilityChangeCb) {
+      // console.log('visibilityChangeCb does not exist');
+      return;
+    }
+    document.removeEventListener(this.visibilityKey.visibilityChange, this.visibilityChangeCb);
+    this.visibilityChangeCb = null;
+  }
+
+  /** 开始事件监听 */
+  startListenEvents() {
     const listener = () => {
       // 添加监听前，清除所有监听
-      this.stopListenMutation();
-      const currentDocument = this.window.document;
-      const documentBody = currentDocument.body;
-      this.cb(documentBody);
-      this.addListenerForIFrame();
+      this.stopListenEvents();
 
-      const mutationObserver = new MutationObserver((mutations, observer) => {
+      const currentDocument = this.document;
+      const documentBody = currentDocument.body;
+      this.cb('loaded', this);
+      this.sendBodyContent();
+
+      // 为现有的iframe结点添加事件监听
+      if (!this.iframe) {
+        this.addListenerForIFrame();
+      }
+      const mutationObserver = new MutationObserver(async(mutations, observer) => {
         /**
          * 当页面有变化时
-         * 1. 输出页面内容
-         * 2. 为页面的所有iframe添加变动监听
+         * 1. 触发回调
+         * 2. 更新iframeMap
          */
-        this.cb(documentBody);
-        this.addListenerForIFrame();
+        this.cb('mutaion', this);
+        this.sendBodyContent();
+
+        if (!this.iframe) {
+          // 为新加的iframe添加事件监听
+          [].slice.call(mutations).forEach(mutaion => {
+            var all = [].slice.call(mutaion.addedNodes).map(it => {
+              if (it.tagName === 'IFRAME') {
+                return it;
+              }
+              return [].slice.call(it.querySelectorAll('iframe'));
+            }).reduce((arr, it) => {
+              arr = arr.concat(it);
+              return arr;
+            }, []).filter(this.isSameOrigin.bind(this)).forEach(node => {
+              if (node.tagName === 'IFRAME') {
+                if (!node.dataset.hasOwnProperty(this.TAG_NAME)) {
+                  node.dataset[this.TAG_NAME] = this.getUid();
+                }
+                const tag = node.dataset[this.TAG_NAME];
+                if (!this.iframeMap.hasOwnProperty(tag)) {
+                  this.iframeMap[tag] = new EventWatcher(node, this.cb);
+                  this.iframeMap[tag].startListenEvents();
+                  this.cb('iframe-added', this)
+                }
+              }
+            });
+
+            // iframe被删除时，清空相应配置
+            var all = [].slice.call(mutaion.removedNodes).map(it => {
+              if (it.tagName === 'IFRAME') {
+                return it;
+              }
+              return [].slice.call(it.querySelectorAll('iframe'));
+            }).reduce((arr, it) => {
+              arr = arr.concat(it);
+              return arr;
+            }, []).filter(this.isSameOrigin.bind(this)).forEach(node => {
+              if (node.tagName === 'IFRAME') {
+                const tag = node.dataset[this.TAG_NAME];
+                if (this.iframeMap.hasOwnProperty(tag)) {
+                  // iframe被删除后监听自动失效，不需手动关闭
+                  // this.iframeMap[tag].stopListenEvents();
+                  delete this.iframeMap[tag]
+                }
+              }
+            });
+          });
+        }
       });
       var options = {
-        // 'attributes': true,
         'subtree': true,
         'childList': true,
       };
@@ -54,18 +174,25 @@ class MutationWatcher {
         waitOneSecond();
       } else {
         this.window.addEventListener('load', waitOneSecond);
-        // hashchange will trigget chrome.tabs.onChanged
+        // hashchange will trigger chrome.tabs.onChanged
         // this.window.addEventListener('hashchange', waitOneSecond);
       }
     } catch(err) {
       console.log(err);
     }
+    return this;
   };
 
-  stopListenMutation() {
-    this.iframeMutationWatcherList.forEach(it => {
-      it.stopListenMutation();
-    });
+  /**
+   * 停止事件监听
+   */
+  stopListenEvents() {
+    // for (let key in this.iframeMap) {
+      // this.iframeMap[key].stopListenEvents();
+    // }
+    // clear iframeMap
+    // this.iframeMap = {};
+    
     // 关闭对mutation的监听
     if (this.mutationObserver) {
       this.mutationObserver.disconnect();
@@ -73,18 +200,82 @@ class MutationWatcher {
     }
   }
   
-  // 为页面的所有iframe添加mutation-observer
+  /**
+   * 为页面的所有iframe添加mutation-observer 
+   * （仅对主页面有效，对iframe页面无效）
+   */
   addListenerForIFrame() {
+    if (this.iframe) {
+      console.log(`addListenerForIFrame can not be called by iframe`);
+      // do not listen iframe in iframe
+      return;
+    }
     const container = this.window.document;
-    const iframeList = Array.prototype.slice.call(container.querySelectorAll('iframe'));
-    // console.log('iframeList');
-    // console.log(iframeList);
-    // console.log(this.window.frames.length);
-    this.iframeMutationWatcherList = iframeList.map(iframe => {
-      const listener = new MutationWatcher(iframe.contentWindow, this.cb)
-      listener.startListenMutation();
-      return listener;
+    const iframeList = [].slice.call(container.querySelectorAll('iframe'));
+    iframeList.filter(this.isSameOrigin.bind(this)).forEach(node => {
+      if (!node.dataset.hasOwnProperty(this.TAG_NAME)) {
+        node.dataset[this.TAG_NAME] = this.getUid();
+      }
+      const tag = node.dataset[this.TAG_NAME];
+      if (!this.iframeMap.hasOwnProperty(tag)) {
+        this.iframeMap[tag] = new EventWatcher(node, this.cb);
+        this.iframeMap[tag].startListenEvents();
+      }
     });
+  }
+
+  get visibilityKey() {
+    // 各种浏览器兼容
+    var hidden, state, visibilityChange;
+    if (typeof document.hidden !== "undefined") {
+      hidden = "hidden";
+      visibilityChange = "visibilitychange";
+      state = "visibilityState";
+    } else if (typeof document.mozHidden !== "undefined") {
+      hidden = "mozHidden";
+      visibilityChange = "mozvisibilitychange";
+      state = "mozVisibilityState";
+    } else if (typeof document.msHidden !== "undefined") {
+      hidden = "msHidden";
+      visibilityChange = "msvisibilitychange";
+      state = "msVisibilityState";
+    } else if (typeof document.webkitHidden !== "undefined") {
+      hidden = "webkitHidden";
+      visibilityChange = "webkitvisibilitychange";
+      state = "webkitVisibilityState";
+    }
+    return {
+      hidden, state, visibilityChange
+    }
+  }
+
+  /**
+   * TODO: not used
+   * 判断iframe是否与当前页面同源（根据浏览器同源策略，非同源的iframe，当前页面没有访问权限）
+   * iframe需要加载完成后才能判断是否同源。避免刚添加iframe结点后，就立即判断是否同源。
+   */
+  isSameOrigin2(node) {
+    var sameOrigin = false;
+    try {
+      sameOrigin = window.location.origin === node.contentWindow.location.origin;
+    } catch(err) {
+      sameOrigin = false;
+    }
+    return sameOrigin;
+  }
+
+  /**
+   * 判断iframe是否与当前页面同源（根据浏览器同源策略，非同源的iframe，当前页面没有访问权限）
+   */
+  isSameOrigin(node) {
+    const urlPasred = this.parseUrl(node.src);
+    var sameOrigin = false;
+    try {
+      sameOrigin = window.location.origin === urlPasred.origin;
+    } catch(err) {
+      sameOrigin = false;
+    }
+    return sameOrigin;
   }
 }
 
@@ -95,7 +286,7 @@ class Helper {
     this.onListen();
     // firstGlance: send message from content to background; ignore message request from background
     this.firstGlance = true;
-    this.watchPageMutation();
+    this.watchPageEvent();
   }
   
   onListen() {
@@ -124,13 +315,8 @@ class Helper {
             // 通过mutationObserver主动向background推送
           } else {
             sendResponse(true);
-            this.sendBodyText(document.body);
-            // sendResponse after utils.getTextAll will cause error: The message port closed before a response was received.
-            // const bodyText = utils.getTextAll(document.body)
-            // sendResponse({
-            //   action,
-            //   data: bodyText
-            // })
+            // pageInfo will be send by content
+            // this.sendBodyText(document.body);
           }
           break;
         case 'request-user-name':
@@ -165,72 +351,23 @@ class Helper {
     return response;
   }
 
-  sendBodyText(node) {
-    const bodyText = utils.getTextAll(node);
-    const iframes = node.querySelectorAll ? [].slice.call(node.querySelectorAll('iframe')).filter(it => {
-      try {
-        return  (window.location.origin === it.contentWindow.location.origin) && utils.isVisible2(it);
-      } catch(err) {
-        return false
+  watchPageEvent() {
+    const eventWatcher = new EventWatcher(window, (type, node, data) => {
+      console.log(`${type}: `);
+      console.log(node.url);
+      console.log(node.title);
+      console.log(node.document);
+      if (data) {
+        console.log(data);
       }
-    }).map(it => {
-      return {
-        url: it.contentWindow.location.href
-      }
-    }) : [];
-    // console.log(bodyText);
-    this.sendMessage({
-      action: 'send-page-content',
-      data: {
-        content: bodyText,
-        iframes
-      }
-    });
-  }
-
-  watchPageMutation() {
-    const mutationWatcher = new MutationWatcher(window, () => {
-      this.sendBodyText(document.body);
-    });
-    mutationWatcher.startListenMutation();
-    // stop watching mutation after 20s, as mutationObserver is resource-comsuming
-    // setTimeout(() => {
-    //   this.firstGlance = false;
-    //   mutationWatcher.stopListenMutation();
-    // }, 20 * 1000);
-    function onWindowVisibilityChange(cb) {
-      // 各种浏览器兼容
-      var hidden, state, visibilityChange;
-      if (typeof document.hidden !== "undefined") {
-        hidden = "hidden";
-        visibilityChange = "visibilitychange";
-        state = "visibilityState";
-      } else if (typeof document.mozHidden !== "undefined") {
-        hidden = "mozHidden";
-        visibilityChange = "mozvisibilitychange";
-        state = "mozVisibilityState";
-      } else if (typeof document.msHidden !== "undefined") {
-        hidden = "msHidden";
-        visibilityChange = "msvisibilitychange";
-        state = "msVisibilityState";
-      } else if (typeof document.webkitHidden !== "undefined") {
-        hidden = "webkitHidden";
-        visibilityChange = "webkitvisibilitychange";
-        state = "webkitVisibilityState";
-      }
-      document.addEventListener(visibilityChange, function(event) {
-        cb(event);
-      }, false);
-    }
-    onWindowVisibilityChange(evt => {
-      // visible or hidden
-      if ('hidden' === document.visibilityState) {
-        this.firstGlance = false;
-        mutationWatcher.stopListenMutation();
-      } else if ('visible' === document.visibilityState) {
-        mutationWatcher.startListenMutation();
-      }
-    })
+    // this.sendMessage({
+    //   action: 'send-page-content',
+    //   data: {
+    //     content: bodyText,
+    //     iframes
+    //   }
+    // });
+    }).startListenMutation();
   }
 }
 

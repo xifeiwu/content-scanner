@@ -198,7 +198,7 @@ class Helper {
   }
   
   // generator of function handlePageContent
-  async handlePageContent(tab, {content = '', iframes = []}) {
+  async handlePageContent(tab, {content = '', title = null, url = null, container = ''}) {
     const config = await this.getServiceConfig();
     if (!config) {
       throw new Error('serverConfig not found!');
@@ -233,9 +233,9 @@ class Helper {
     // console.log(count_reg);
 
     var payload = {
-      title: tab.title,
-      url: tab.url,
-      iframes
+      title: title == null ? tab.title : title,
+      url: url == null ? tab.url : url,
+      container: container
     };
     var totalCount = 0;
     for (let key in count_reg) {
@@ -355,6 +355,7 @@ class Helper {
         // 发送浏览记录
         this.handleVisitHistory(tab);
         if (await isConnected(tabId, tab)) {
+          // TODO: no need to request, page-conent will send by content
           await sendMessage2ContentScript(tabId, 'request-page-content');
           const selectorForUserName = await this.getSelectorForUserName(tab);
           // console.log(`selectorForUserName: ${selectorForUserName}`);
