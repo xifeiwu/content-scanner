@@ -343,14 +343,16 @@ class Helper {
    * @return {response}, response from chrome.runtime
    */
   async sendMessage(obj) {
-    const response = await new Promise((resolve, reject) => {
-      chrome.runtime.sendMessage(obj, response => {
-        chrome.runtime.lastError
-          ? reject(Error(chrome.runtime.lastError.message))
-          : resolve(response)
+    try {
+      const response = await new Promise((resolve, reject) => {
+        chrome.runtime.sendMessage(obj, response => {
+          chrome.runtime.lastError
+            ? reject(Error(chrome.runtime.lastError.message))
+            : resolve(response)
+        });
       });
-    });
-    return response;
+      return response;
+    } catch (err) {}
   }
 
   watchPageEvent() {
