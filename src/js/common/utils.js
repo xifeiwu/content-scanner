@@ -393,9 +393,7 @@ class Utils {
       // 忽略script, style, noscript中的内容
       return '';
     } else if('IFRAME' === tagName) {
-      // console.log(node);
-      // console.log(node.contentWindow.document.body.textContent);
-      // console.log(node.contentWindow.location.origin);
+      return '';
       // 获取iframe中的内容
       try {
         // 处理跨域的问题
