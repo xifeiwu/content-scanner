@@ -128,7 +128,7 @@ class EventWatcher extends Utils {
                 if (!this.iframeMap.hasOwnProperty(tag)) {
                   this.iframeMap[tag] = new EventWatcher(node, this.cb);
                   this.iframeMap[tag].startListenEvents();
-                  this.cb('iframe-added', this)
+                  this.cb('iframe-added', this, node)
                 }
               }
             });
@@ -366,8 +366,9 @@ class Helper {
         }
       }
       switch (action) {
-        case 'visible':
         case 'iframe-added':
+          node = data;
+        case 'visible':
           this.sendMessage({
             action: 'send-visit-history',
             data: {
