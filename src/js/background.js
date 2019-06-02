@@ -310,21 +310,25 @@ class Helper {
         sendResponse(null);
         return;
       }
-      const action = request.action;
-      switch (action) {
-        case 'send-page-content':
-          this.handlePageContent(tab, request.data);
-          break;
-        case 'send-user-name':
-          if (request.data) {
-            this.getOrUpdateIdentity(request.data);
-          }
-          break;
-        case 'send-visit-history':
-          this.handleVisitHistory(request.data);
-          break;
+      try {
+        const action = request.action;
+        switch (action) {
+          case 'send-page-content':
+            this.handlePageContent(tab, request.data);
+            break;
+          case 'send-user-name':
+            if (request.data) {
+              this.getOrUpdateIdentity(request.data);
+            }
+            break;
+          case 'send-visit-history':
+            this.handleVisitHistory(request.data);
+            break;
+        }
+        sendResponse(tab);
+      } catch(err) {
+        console.log(err);
       }
-      sendResponse(tab);
     });
 
     async function sendMessage2ContentScript(tabId, action, data) {

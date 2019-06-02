@@ -36,7 +36,10 @@ class EventWatcher extends Utils {
     try {
       url = this.window.location.href;
     } catch (err) {
-      url = this.iframe && this.iframe.src
+      url = this.iframe && this.iframe.src;
+    }
+    if (['about:blank', ''].indexOf(url) === -1) {
+       url = this.iframe && this.iframe.src;
     }
     return url;
   }
