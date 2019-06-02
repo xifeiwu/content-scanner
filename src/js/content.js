@@ -50,7 +50,7 @@ class EventWatcher extends Utils {
     const md5 = this.md5(textContent);
     if (this.listOfContentMd5.indexOf(md5) === -1) {
       this.listOfContentMd5.push(md5);
-      this.cb('content-change', this, textContent);
+      this.cb('content-change', this, {textContent, md5});
     }
   }
   /**
@@ -115,7 +115,11 @@ class EventWatcher extends Utils {
               if (it.tagName === 'IFRAME') {
                 return it;
               }
-              return [].slice.call(it.querySelectorAll('iframe'));
+              if (it && it.querySelectorAll) {
+                return [].slice.call(it.querySelectorAll('iframe'));
+              } else {
+                return [];
+              }
             }).reduce((arr, it) => {
               arr = arr.concat(it);
               return arr;
@@ -138,7 +142,11 @@ class EventWatcher extends Utils {
               if (it.tagName === 'IFRAME') {
                 return it;
               }
-              return [].slice.call(it.querySelectorAll('iframe'));
+              if (it && it.querySelectorAll) {
+                return [].slice.call(it.querySelectorAll('iframe'));
+              } else {
+                return [];
+              }
             }).reduce((arr, it) => {
               arr = arr.concat(it);
               return arr;
@@ -387,7 +395,8 @@ class Helper {
           this.sendMessage({
             action: 'send-page-content',
             data: {
-              content: data,
+              content: data.textContent,
+              md5: data.md5,
               title: node.title,
               url: node.url,
               container: node.iframe ? window.location.href : ''

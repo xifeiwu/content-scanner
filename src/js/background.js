@@ -218,14 +218,14 @@ class Helper {
   }
   
   // generator of function handlePageContent
-  async handlePageContent(tab, {content = '', title = null, url = null, container = ''}) {
+  async handlePageContent(tab, {content = '', md5 = '', title = null, url = null, container = ''}) {
     const config = await this.getServiceConfig();
     if (!config) {
       throw new Error('serverConfig not found!');
     }
     if (DEBUG) {
       console.log({
-        content, title, url, container
+        content, md5, title, url, container
       });
       return;
     }
