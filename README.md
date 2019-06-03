@@ -14,12 +14,16 @@
 
 对于主页面，打开一次浏览器tab，算作一次浏览。
 
-对于iframe，监听visibilityState事件，'visible' === document.visibilityState时，算作一次浏览。
+对于iframe，监听visibilityState事件，document.visibilityState === 'visible'时，算作一次浏览。
+
+对于主页面，监听chrome.tabs.onActivated事件，因为search, hash的修改不会触发visibilityState事件，但chrome.tabs.onActivated会被触发。
 
 **页面内容检测**
 
-页面的内容不包含页面内iframe中的内容。
+页面内容会在两个事件中监听：'load', 'mutationObsever'。load在页面加载完成后调用一次；mutationObsever会在页面有任何变化时调用。
 
 前端会缓存发送到后端的数据，相同的数据不会发送两遍。
+
+页面的内容不包含页面内iframe中的内容。
 
 但页面切换到后台（如tab切换）时，前端会清空缓存。

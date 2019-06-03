@@ -261,7 +261,8 @@ class Helper {
     var payload = {
       title: title == null ? tab.title : title,
       url: url == null ? tab.url : url,
-      container: container
+      container: container,
+      md5: md5Key
     };
     var totalCount = 0;
     for (let key in count_reg) {
