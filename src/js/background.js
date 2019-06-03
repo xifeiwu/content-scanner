@@ -246,7 +246,7 @@ class Helper {
       }
     }
 
-    const md5Key = md5(content)
+    const md5Key = utils.md5(content)
     if (this.legalContentMap.hasOwnProperty(md5Key)) {
       return;
     }
