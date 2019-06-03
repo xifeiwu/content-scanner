@@ -385,8 +385,8 @@ class Helper {
       }
 
       try {
-        // NOTICE: visit history is send by content
-        // this.handleVisitHistory(tab);
+        // NOTICE: only watch main page here; visit history is send by content for iframe;
+        this.handleVisitHistory(tab);
         if (await isConnected(tabId, tab)) {
           // NOTICE: page-conent is send by content(no need to request)
           // await sendMessage2ContentScript(tabId, 'request-page-content');

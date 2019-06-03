@@ -381,15 +381,18 @@ class Helper {
       switch (action) {
         case 'iframe-added':
           node = data;
+        // watch loaded is better than watch visible
         case 'loaded':
-          this.sendMessage({
-            action: 'send-visit-history',
-            data: {
-              title: node.title,
-              url: node.url,
-              container: node.iframe ? window.location.href : ''
-            }
-          });
+          if (node.iframe) {
+            this.sendMessage({
+              action: 'send-visit-history',
+              data: {
+                title: node.title,
+                url: node.url,
+                container: node.iframe ? window.location.href : ''
+              }
+            });
+          }
           if (DEBUG) {
             showData();
           }
