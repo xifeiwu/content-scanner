@@ -38,7 +38,7 @@ class EventWatcher extends Utils {
     } catch (err) {
       url = this.iframe && this.iframe.src;
     }
-    if (['about:blank', ''].indexOf(url) === -1) {
+    if (['about:blank', ''].indexOf(url) > -1) {
        url = this.iframe && this.iframe.src;
     }
     return url;
@@ -381,7 +381,7 @@ class Helper {
       switch (action) {
         case 'iframe-added':
           node = data;
-        case 'visible':
+        case 'loaded':
           this.sendMessage({
             action: 'send-visit-history',
             data: {
